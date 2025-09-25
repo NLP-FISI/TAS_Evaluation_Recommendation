@@ -14,6 +14,7 @@ Brindar servicios de **evaluación personalizada y recomendación adaptativa**, 
 ## 🔑 Funcionalidades
 
 - **Evaluación de Entrada**: Diagnóstico inicial del nivel del estudiante.
+- **🧪 Prueba de Diagnóstico (Etapa 1 - Nivel Básico)**: Sistema completo de evaluación diagnóstica con preguntas específicas para nivel básico.
 - **Evaluación de Desempeño**: Seguimiento del progreso y habilidades.
 - **Recomendación de Retos**: Actividades y juegos adaptados.
 - **Recomendación de Preguntas**: Preguntas de comprensión ajustadas.
@@ -76,7 +77,41 @@ Ejemplo:
 
 ```
 POST /api/v1/evaluation-input/
+POST /api/v1/diagnostic-test/generate
+POST /api/v1/diagnostic-test/evaluate
+GET  /api/v1/diagnostic-test/questions/basic
 POST /api/v1/recommendation-questions/
+```
+
+### 🧪 Nuevos Endpoints de Diagnóstico (Etapa 1 - Nivel Básico)
+
+- **`POST /api/v1/diagnostic-test/generate`**: Genera una prueba diagnóstica personalizada
+- **`POST /api/v1/diagnostic-test/evaluate`**: Evalúa respuestas y proporciona diagnóstico detallado  
+- **`GET /api/v1/diagnostic-test/questions/basic`**: Obtiene las preguntas de nivel básico
+
+Ejemplo de uso:
+
+```bash
+# Generar prueba diagnóstica
+curl -X POST http://localhost:8000/api/v1/diagnostic-test/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "student_id": "estudiante123",
+    "grade_level": 3,
+    "test_level": "básico",
+    "preferences": ["animales", "cuentos"]
+  }'
+
+# Evaluar respuestas
+curl -X POST http://localhost:8000/api/v1/diagnostic-test/evaluate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "student_id": "estudiante123",
+    "test_id": "test-uuid",
+    "answers": [
+      {"question_id": "basic_001", "answer": "Miau", "time_spent": 30}
+    ]
+  }'
 ```
 
 ---

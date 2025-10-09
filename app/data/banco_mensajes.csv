@@ -1,0 +1,31 @@
+﻿id,texto,tipo_error,nivel_comprension,vocab_label,activo
+1,Revisa nuevamente el párrafo inicial; allí se encuentran pistas para responder.,literal,básico,simple,True
+2,"Busca palabras que se repiten, pueden ayudarte a encontrar la idea principal.",literal,básico,simple,True
+3,Vuelve a leer la pregunta con calma y busca términos similares en el texto.,literal,básico,simple,True
+4,Presta atención a los conectores como ‘porque’ o ‘entonces’; te dicen la relación entre ideas.,literal,intermedio,medio,True
+5,"Localiza la frase que responde directamente a la pregunta, suele estar cerca del inicio o final.",literal,intermedio,simple,True
+6,"Cuando una palabra no la entiendas, usa el contexto para descubrir su significado.",literal,intermedio,medio,True
+7,Subraya las palabras más importantes del texto antes de responder.,literal,básico,simple,True
+8,"Observa los detalles: nombres, lugares o fechas te ayudan a recordar información clave.",literal,intermedio,simple,True
+9,Analiza las imágenes o ilustraciones; también contienen información importante.,literal,básico,simple,True
+10,Lee atentamente la pregunta y elige la opción que diga exactamente lo mismo que el texto.,literal,intermedio,simple,True
+11,Imagina lo que no se dice directamente; usa las pistas del texto para deducirlo.,inferencial,intermedio,medio,True
+12,Piensa en lo que pasó antes y después para entender por qué ocurrió algo.,inferencial,intermedio,medio,True
+13,Conecta lo que el personaje hizo con lo que siente o piensa.,inferencial,intermedio,medio,True
+14,"Si el texto no lo dice claramente, busca señales que te permitan adivinar la intención.",inferencial,avanzado,medio,True
+15,Relaciona las acciones con sus causas y consecuencias para encontrar sentido al texto.,inferencial,intermedio,medio,True
+16,Compara lo que sucede en dos párrafos para descubrir la relación entre ellos.,inferencial,avanzado,medio,True
+17,Usa tus conocimientos previos para comprender mejor la situación del texto.,inferencial,intermedio,medio,True
+18,Piensa qué pudo pasar después del final del texto según las pistas que te da la historia.,inferencial,avanzado,medio,True
+19,Haz una inferencia: ¿qué quiso decir el autor sin escribirlo directamente?,inferencial,avanzado,avanzado,True
+20,"Identifica los sentimientos del personaje por lo que hace, no solo por lo que dice.",inferencial,intermedio,medio,True
+21,Explica con tus propias palabras por qué ocurrió el hecho principal del texto.,crítico,avanzado,medio,True
+22,Compara dos ideas del texto y di cuál te parece más convincente.,crítico,avanzado,medio,True
+23,Piensa si estás de acuerdo con lo que dice el personaje y justifica tu opinión.,crítico,avanzado,medio,True
+24,Evalúa si el título del texto representa bien lo que sucede en la historia.,crítico,intermedio,medio,True
+25,Propón un final diferente al texto que mantenga coherencia con los hechos.,crítico,avanzado,avanzado,True
+26,Imagina cómo cambiaría la historia si el personaje actuara de otra manera.,crítico,intermedio,medio,True
+27,Reflexiona sobre lo que aprendiste del texto y cómo se aplica a tu vida.,crítico,avanzado,avanzado,True
+28,"Da tu opinión sobre la decisión del personaje, ¿crees que fue correcta? ¿Por qué?",crítico,intermedio,medio,True
+29,Identifica el mensaje o enseñanza que el autor quiso dejarte.,crítico,básico,simple,True
+30,Resume en una frase lo más importante del texto.,crítico,básico,simple,True

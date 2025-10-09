@@ -12,7 +12,9 @@ class ProfilingService:
         Aquí se conectarían con la base de datos para guardar la información.
         """
         
-        # --- Lógica de Base de Datos ---
+        # --- Lógica de Base de Datos (Simulada) ---
+        # En un caso real, aquí guardarías los datos en la base de datos.
+        # Por ejemplo:
         # user_profile = ProfileModel(
         #     student_id=data.student_id,
         #     grade_level=data.grade_level,

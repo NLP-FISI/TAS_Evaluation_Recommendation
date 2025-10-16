@@ -1,36 +1,74 @@
-# app/services/evaluation_performance_service.py
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from app.core.database import get_conn, release_conn
 from app.schemas.evaluation_performance import RegistroEvaluacionSalida, ResultadoEvaluacion
+import math
+import psycopg2.extras 
 
-# ----- Repository: obtener registros crudos desde la BD -----
+ALPHA_EXACTITUD = 0.7  # Peso de la Precisión (alpha)
+BETA_TIEMPO = 0.3      # Peso de T_norm (beta)
+W1_PREGUNTA = 0.6      # Peso de Tp_norm
+W2_LECTURA = 0.4       # Peso de Tr_norm
+
+#si el P90 de la BD es NULL, cero o negativo se usan estos valores
+MIN_TREF_P = 30.0 
+MIN_TREF_R = 200.0
+
+#Obtener registros crudos del usuario
 def get_raw_data_from_db(id_usuario: str) -> List[RegistroEvaluacionSalida]:
-    """
-    Lee los registros crudos desde la tabla que contiene los datos.
-    Ajusta el nombre de la tabla/columnas si en tu BD se llaman distinto.
-    """
     sql = """
         SELECT
-            id_resultado_juego AS id_resultado_juego,
-            tiempo_texto_seg AS tiempo_texto_seg,
-            tiempo_pregunta_seg AS tiempo_pregunta_seg,
-            correctas AS correctas,
-            incorrectas AS incorrectas
+            id_resultado_juego,
+            tiempo_texto_seg,
+            tiempo_pregunta_seg,
+            correctas,
+            incorrectas
         FROM performance_records 
         WHERE id_usuario = %s
         ORDER BY id ASC
     """
     conn = get_conn()
     try:
-        with conn.cursor(cursor_factory=__import__("psycopg2.extras").extras.RealDictCursor) as cur:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(sql, (id_usuario,))
             rows = cur.fetchall()
             return [RegistroEvaluacionSalida(**r) for r in rows]
     finally:
         release_conn(conn)
 
-# ----- Cálculo de métricas -----
+#Obtener referencias grupales (P90) 
+def _get_group_references_from_db() -> Dict[str, float]:
+
+    sql = """
+        SELECT
+            -- Percentil 90 para tiempo de pregunta (tref_p)
+            percentile_cont(0.9) WITHIN GROUP (ORDER BY tiempo_pregunta_seg) AS tref_p,
+            -- Percentil 90 para tiempo de lectura (tref_r)
+            percentile_cont(0.9) WITHIN GROUP (ORDER BY tiempo_texto_seg) AS tref_r
+        FROM performance_records
+    """
+    conn = get_conn()
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(sql)
+            references = cur.fetchone()
+
+            tref_p_db = references.get('tref_p') if references else None
+            tref_r_db = references.get('tref_r') if references else None
+
+            # Si el P90 es NULL o menor/igual a 0, SE usa la constante positiva mínima
+            final_tref_p = tref_p_db if tref_p_db and tref_p_db > 0 else MIN_TREF_P
+            final_tref_r = tref_r_db if tref_r_db and tref_r_db > 0 else MIN_TREF_R
+            
+            return {
+                "tref_p": final_tref_p,
+                "tref_r": final_tref_r
+            }
+    finally:
+        release_conn(conn)
+
+# Calcular indicadores básicos del usuario
 def _compute_metrics(records: List[RegistroEvaluacionSalida]) -> Dict[str, Any]:
+    """Calcula C, I, promedios de tiempo y Exactitud."""
     total_texts = len(records)
     total_correct = sum(r.correctas for r in records)
     total_incorrect = sum(r.incorrectas for r in records)
@@ -38,45 +76,79 @@ def _compute_metrics(records: List[RegistroEvaluacionSalida]) -> Dict[str, Any]:
     total_reading_time = sum(r.tiempo_texto_seg for r in records)
 
     total_questions = total_correct + total_incorrect
+    
+    # Exactitud (Precisión) = C / (C + I)
     exactitud = (total_correct / total_questions) if total_questions > 0 else 0.0
+    
+    # Promedio tiempo por pregunta
     promedio_tiempo_por_pregunta = (total_questions_time / total_questions) if total_questions > 0 else 0.0
+    
+    # Promedio tiempo de lectura por texto
     promedio_tiempo_por_lectura = (total_reading_time / total_texts) if total_texts > 0 else 0.0
 
     return {
-        "total_texts": total_texts,
-        "total_questions": total_questions,
+        "textos_considerados": total_texts,
         "exactitud": exactitud,
         "promedio_tiempo_por_pregunta": promedio_tiempo_por_pregunta,
         "promedio_tiempo_por_lectura": promedio_tiempo_por_lectura
     }
 
-# ----- Normalización de tiempos a score (0..1) -----
-def _time_to_score(avg_time: float, expected: float) -> float:
+# Normalización de tiempos (Tp_norm y Tr_norm) 
+#Convierte el tiempo promedio a una eficiencia (0..1) 
+def _time_to_norm_score(avg_time: float, tref: float) -> float:
+   
     if avg_time <= 0:
-        return 1.0
-    s = 1.0 / (1.0 + (avg_time / expected))
-    return max(0.0, min(1.0, s))
+        return 1.0 # Máxima eficiencia
+    
+    # Ratio = t_usuario / t_referencia
+    ratio = avg_time / tref
 
-# ----- Fórmula ponderada (devuelve 0..100) -----
-def _apply_weighted_formula(metrics: Dict[str, Any],
-                            weight_exactitud: float = 0.7,
-                            weight_time: float = 0.3,
-                            expected_q: float = 30.0,
-                            expected_r: float = 300.0) -> float:
-    exactitud = metrics["exactitud"]  # 0..1
-    q_score = _time_to_score(metrics["promedio_tiempo_por_pregunta"], expected_q)
-    r_score = _time_to_score(metrics["promedio_tiempo_por_lectura"], expected_r)
-    tiempo_combinado = 0.6 * q_score + 0.4 * r_score
-    final = (exactitud * weight_exactitud + tiempo_combinado * weight_time) * 100.0
-    return round(max(0.0, min(100.0, final)), 2)
+    t_norm = 1.0 - min(ratio, 1.0)
+    
+    return t_norm
 
-# ----- Guardar resultado en tabla performance_evaluation -----
+# Calcular IES y Puntaje 
+def _calculate_ies_and_score(metrics: Dict[str, Any],
+                             tref_p: float,
+                             tref_r: float,
+                             alpha: float = ALPHA_EXACTITUD,
+                             beta: float = BETA_TIEMPO,
+                             w1: float = W1_PREGUNTA,
+                             w2: float = W2_LECTURA) -> float:
+        
+    precision = metrics["exactitud"] 
+
+    #Normalizar tiempos individuales (Tp_norm y Tr_norm)
+    tp_norm = _time_to_norm_score(metrics["promedio_tiempo_por_pregunta"], tref_p)
+    tr_norm = _time_to_norm_score(metrics["promedio_tiempo_por_lectura"], tref_r)
+    
+    #Combinar tiempos normalizados (T_norm)
+    t_norm = (w1 * tp_norm) + (w2 * tr_norm)
+    
+    #Calcular el IES (0..1)
+    ies = (precision * alpha) + (t_norm * beta)
+    
+    #Escalar a Puntaje (0..100) y redondear
+    puntaje = round(ies * 100.0, 2)
+    
+    return puntaje
+
+# Guardar resultado
 def _save_evaluation_to_db(id_usuario: str, result: Dict[str, Any]):
+ 
     sql = """
         INSERT INTO performance_results
-            (id_usuario, puntaje, nivel, exactitud, promedio_tiempo_por_pregunta, promedio_tiempo_por_lectura, textos_considerados)
+            (id_usuario, puntaje, nivel, exactitud, promedio_tiempo_por_pregunta, 
+             promedio_tiempo_por_lectura, textos_considerados)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
-        RETURNING id;
+        ON CONFLICT (id_usuario) DO UPDATE 
+        SET 
+            puntaje = EXCLUDED.puntaje, 
+            nivel = EXCLUDED.nivel,
+            exactitud = EXCLUDED.exactitud,
+            promedio_tiempo_por_pregunta = EXCLUDED.promedio_tiempo_por_pregunta,
+            promedio_tiempo_por_lectura = EXCLUDED.promedio_tiempo_por_lectura,
+            textos_considerados = EXCLUDED.textos_considerados;
     """
     conn = get_conn()
     try:
@@ -90,60 +162,63 @@ def _save_evaluation_to_db(id_usuario: str, result: Dict[str, Any]):
                 result["promedio_tiempo_por_lectura"],
                 result["textos_considerados"]
             ))
-            inserted_id = cur.fetchone()[0]
             conn.commit()
-            return inserted_id
+    except Exception as e:
+        print(f"ERROR al guardar evaluación para {id_usuario}: {e}")
     finally:
         release_conn(conn)
 
-# ----- Función principal: orquesta el flujo -----
-def calculate_performance(id_usuario: str) -> ResultadoEvaluacion:
-    records = get_raw_data_from_db(id_usuario)
-    if not records:
-        # devolver objeto vacío / o lanzar excepción según prefieras
-        return ResultadoEvaluacion(
-            id_usuario=id_usuario,
-            puntaje=0.0,
-            nivel="básico",
-            exactitud=0.0,
-            promedio_tiempo_por_pregunta=0.0,
-            promedio_tiempo_por_lectura=0.0,
-            textos_considerados=0
+def calculate_performance(id_usuario: str) -> Optional[ResultadoEvaluacion]:
+    try:
+        #Obtener registros del usuario
+        records = get_raw_data_from_db(id_usuario)
+        if not records:
+            return None 
+        
+        #Métricas básicas del usuario
+        metrics = _compute_metrics(records)
+
+        #Referencias grupales (tref_p y tref_r)
+        references = _get_group_references_from_db()
+        
+        #Normalización, IES y Puntaje
+        puntaje = _calculate_ies_and_score(
+            metrics,
+            tref_p=references["tref_p"],
+            tref_r=references["tref_r"]
         )
 
-    metrics = _compute_metrics(records)
-    puntaje = _apply_weighted_formula(metrics)
+        #Asignar nivel
+        if puntaje >= 80:
+            nivel = "avanzado"
+        elif puntaje >= 60:
+            nivel = "intermedio"
+        else:
+            nivel = "básico"
 
-    # asignar nivel
-    if puntaje >= 80:
-        nivel = "avanzado"
-    elif puntaje >= 60:
-        nivel = "intermedio"
-    else:
-        nivel = "básico"
+        #Reunir y redondear el resultado final
+        resultado = {
+            "puntaje": puntaje,
+            "nivel": nivel,
+            "exactitud": round(metrics["exactitud"], 3),
+            "promedio_tiempo_por_pregunta": round(metrics["promedio_tiempo_por_pregunta"], 2),
+            "promedio_tiempo_por_lectura": round(metrics["promedio_tiempo_por_lectura"], 2),
+            "textos_considerados": metrics["textos_considerados"]
+        }
 
-    resultado = {
-        "puntaje": puntaje,
-        "nivel": nivel,
-        "exactitud": round(metrics["exactitud"], 3),
-        "promedio_tiempo_por_pregunta": round(metrics["promedio_tiempo_por_pregunta"], 2),
-        "promedio_tiempo_por_lectura": round(metrics["promedio_tiempo_por_lectura"], 2),
-        "textos_considerados": metrics["total_texts"]
-    }
-
-    # guardar en la tabla de evaluaciones (opcional)
-    try:
+        # Guardar resultado
         _save_evaluation_to_db(id_usuario, resultado)
-    except Exception:
-        # si falla el guardado, igual devolvemos el resultado. Loggear en producción.
-        pass
 
-    return ResultadoEvaluacion(
-        id_usuario=id_usuario,
-        puntaje=resultado["puntaje"],
-        nivel=resultado["nivel"],
-        exactitud=resultado["exactitud"],
-        promedio_tiempo_por_pregunta=resultado["promedio_tiempo_por_pregunta"],
-        promedio_tiempo_por_lectura=resultado["promedio_tiempo_por_lectura"],
-        textos_considerados=resultado["textos_considerados"]
-    )
+        # Devolver el objeto ResultadoEvaluacion
+        return ResultadoEvaluacion(
+            id_usuario=id_usuario,
+            puntaje=resultado["puntaje"],
+            nivel=resultado["nivel"],
+            exactitud=resultado["exactitud"],
+            promedio_tiempo_por_pregunta=resultado["promedio_tiempo_por_pregunta"],
+            promedio_tiempo_por_lectura=resultado["promedio_tiempo_por_lectura"],
+            textos_considerados=resultado["textos_considerados"]
+        )
+    except Exception as e:
+        print(f"ERROR crítico en calculate_performance para {id_usuario}: {e}")
+        return None

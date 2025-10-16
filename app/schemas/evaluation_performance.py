@@ -1,4 +1,3 @@
-# app/schemas/evaluation_schemas.py
 from pydantic import BaseModel, Field
 from typing import List
 

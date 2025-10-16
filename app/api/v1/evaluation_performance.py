@@ -1,4 +1,3 @@
-# app/api/v1/evaluation_performance.py
 from fastapi import APIRouter, HTTPException
 from typing import List
 from app.services.evaluation_performance_service import (
@@ -13,7 +12,6 @@ router = APIRouter(prefix="/performance", tags=["Evaluación de desempeño"])
 def get_performance_data(id_usuario: str):
     data = get_raw_data_from_db(id_usuario)
     if not data:
-        # devolver lista vacía es válido; si prefieres 404, cambia aquí
         raise HTTPException(status_code=404, detail="No se encontraron registros")
     return data
 

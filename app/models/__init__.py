@@ -1,12 +1,11 @@
 """
-Modelos SQLAlchemy para la aplicación.
+Modelos SQLAlchemy para la aplicación (temporalmente deshabilitado).
 """
-from .user_profile import Usuario, Tematica, Grado, UsuarioTematica, Base
+# from .user_profile import Usuario, Tematica, Grado, Base  # Comentado temporalmente
 
 __all__ = [
-    "Usuario",
-    "Tematica", 
-    "Grado",
-    "UsuarioTematica",
-    "Base"
+    # "Usuario",
+    # "Tematica", 
+    # "Grado",
+    # "Base"
 ]

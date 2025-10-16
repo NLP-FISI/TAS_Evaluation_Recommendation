@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.schemas.recommendation_schemas import PreguntaOut
-from app.services.recommendation_questions_service import filtrar_preguntas_por_dificultad
+from app.services.recommendation_questions_service import filtrar_preguntas_por_dificultad, diversificar_tipos_pregunta
 from app.core.database import get_db
 
 router = APIRouter(
@@ -26,4 +26,5 @@ def get_preguntas_por_dificultad(
     db: Session = Depends(get_db)
 ):
     preguntas = filtrar_preguntas_por_dificultad(db, dificultad)
-    return preguntas
+    preguntas_diversas = diversificar_tipos_pregunta(preguntas)
+    return preguntas_diversas

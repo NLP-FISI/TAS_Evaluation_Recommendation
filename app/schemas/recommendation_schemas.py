@@ -13,3 +13,11 @@ class ExperienceLevelResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+class PreguntaOut(BaseModel):
+    ID_Pregunta: int
+    Contenido: str
+    ID_Dificultad: int
+
+    class Config: 
+        orm_mode = True

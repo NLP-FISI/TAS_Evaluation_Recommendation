@@ -6,6 +6,7 @@ from . import evaluation_challenges
 from . import recommendation_tiers
 from . import recommendation_users
 from .evaluation_analytics import router as evaluation_analytics_router
+from . import recommendation_difficulty
 
 
 # --- Creación del enrutador ---
@@ -16,3 +17,4 @@ router.include_router(evaluation_challenges.router)
 router.include_router(evaluation_analytics_router)
 router.include_router(recommendation_tiers.router)
 router.include_router(recommendation_users.router)
+router.include_router(recommendation_difficulty.router)

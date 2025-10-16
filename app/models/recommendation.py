@@ -1,5 +1,5 @@
 # app/models/recommendation.py
-from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey, String
+from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey, Text, String
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 from datetime import datetime
@@ -31,3 +31,14 @@ class Pregunta(Base):
     Contenido = Column(String(100))
 
     dificultad = relationship("Dificultad")
+
+class Challenge(Base):
+    __tablename__ = "challenges"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(100), nullable=False)
+    content = Column(Text, nullable=False)
+    internal_difficulty = Column(String(50), nullable=False)
+    external_complexity_score = Column(
+        Float, nullable=True)  # ← Nueva métrica RF4
+    external_complexity_level = Column(String(50), nullable=True)

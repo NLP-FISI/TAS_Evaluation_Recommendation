@@ -5,7 +5,7 @@ recommendation_evaluation_module/
 ├── README.md                  # Documentación general del módulo
 ├── README_TEMPLATE.md         # Plantilla para que cada submódulo documente su propósito
 ├── pyproject.toml             # Configuración de dependencias (Poetry) o requirements.txt si prefieren pip
-├── requirements.txt         
+├── requirements.txt   
 ├── alembic/                   # Migraciones de base de datos
 │   ├── env.py
 │   ├── versions/
@@ -18,13 +18,14 @@ recommendation_evaluation_module/
 │   │   ├── security.py        # JWT, auth, permisos (si aplica)
 │   │   └── utils.py           # Funciones utilitarias comunes
 │   ├── api/                   # Endpoints (rutas de la API organizadas por submódulos)
-│   │   ├── v1/              
+│   │   ├── v1/  
 │   │   │   ├── __init__.py
 │   │   │   ├── evaluation_input.py       # Evaluación de entrada
 │   │   │   ├── evaluation_performance.py # Evaluación de desempeño
 │   │   │   ├── recommendation_challenges.py   # Recomendación de retos
 │   │   │   ├── recommendation_questions.py    # Recomendación de preguntas
 │   │   │   ├── recommendation_difficulty.py   # Recomendación de dificultad
+│   │   │   ├── recommendation_tiers.py        # Tiers
 │   │   │   ├── recommendation_users.py        # Recomendación de usuarios por nivel/experiencia
 │   │   │   └── router.py              # Punto unificado de rutas
 │   ├── services/              # Lógica de negocio (cada submódulo aquí)

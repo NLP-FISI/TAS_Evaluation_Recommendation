@@ -13,7 +13,7 @@ W2_LECTURA = 0.4       # Peso de tl_norm
 MIN_TREF_P = 30.0 
 MIN_TREF_R = 200.0
 
-def get_raw_data_from_db(db, id_usuario: str) -> List[RegistroEvaluacionSalida]:
+def obtener_datos_bd(db, id_usuario: str) -> List[RegistroEvaluacionSalida]:
     sql = text("""
         SELECT
             id_resultado_juego,
@@ -41,7 +41,7 @@ def get_raw_data_from_db(db, id_usuario: str) -> List[RegistroEvaluacionSalida]:
         for r in rows
     ]
 # Obtener referencias grupales (P90)
-def get_group_references_from_db(db) -> Dict[str, float]:
+def obtener_tiempo_referencias_db(db) -> Dict[str, float]:
     sql = text("""
         SELECT
             percentile_cont(0.9) WITHIN GROUP (ORDER BY tiempo_pregunta_seg) AS tref_p,
@@ -60,7 +60,7 @@ def get_group_references_from_db(db) -> Dict[str, float]:
 
 
 # Calcular métricas
-def compute_metrics(records: List[RegistroEvaluacionSalida]) -> Dict[str, Any]:
+def calcular_metricas(records: List[RegistroEvaluacionSalida]) -> Dict[str, Any]:
     total_texts = len(records)
     total_correct = sum(r.correctas for r in records)
     total_incorrect = sum(r.incorrectas for r in records)
@@ -83,7 +83,7 @@ def compute_metrics(records: List[RegistroEvaluacionSalida]) -> Dict[str, Any]:
 
 # Normalización de tiempos (Tp_norm y tl_norm) 
 #Convierte el tiempo promedio a una eficiencia (0..1) 
-def time_to_norm_score(prom_time: float, tref: float) -> float:
+def normalizar_tiempo(prom_time: float, tref: float) -> float:
    
     if prom_time is None or prom_time <= 0:
         # si no hay datos validos entonces retornamos eficiencia neutra 0.5
@@ -96,8 +96,8 @@ def time_to_norm_score(prom_time: float, tref: float) -> float:
     
     return time_norm
 
-# Calcular IES y Puntaje 
-def calculate_ies_and_score(metrics: Dict[str, Any],
+# Calcular formula_principal y Puntaje 
+def calcular_formula_principal(metrics: Dict[str, Any],
                              tref_p: float,
                              tref_r: float,
                              alpha: float = ALPHA_EXACTITUD,
@@ -108,22 +108,22 @@ def calculate_ies_and_score(metrics: Dict[str, Any],
     precision = metrics["exactitud"] 
 
     #Normalizar tiempos individuales (Tp_norm y tl_norm)
-    tp_norm = time_to_norm_score(metrics["promedio_tiempo_por_pregunta"], tref_p)
-    tl_norm = time_to_norm_score(metrics["promedio_tiempo_por_lectura"], tref_r)
+    tp_norm = normalizar_tiempo(metrics["promedio_tiempo_por_pregunta"], tref_p)
+    tl_norm = normalizar_tiempo(metrics["promedio_tiempo_por_lectura"], tref_r)
     
     #Combinar tiempos normalizados (T_norm)
     t_norm = (w1 * tp_norm) + (w2 * tl_norm)
     
-    #Calcular el IES (0..1)
-    ies = (precision * alpha) + (t_norm * beta)
+    #Calcular la Formula Principal (0..1)
+    formula_principal = (precision * alpha) + (t_norm * beta)
     
     #Escalar a Puntaje (0..100) y redondear
-    puntaje = round(ies * 100.0, 2)
+    puntaje = round(formula_principal * 100.0, 2)
     
     return puntaje
 
 # Guardar resultado
-def save_evaluation_to_db(db, result: Dict[str, Any]):
+def guardar_evaluacion(db, result: Dict[str, Any]):
     sql = text("""
         INSERT INTO desempenio
             (id_usuario, puntaje, nivel, exactitud, promedio_tiempo_por_pregunta, 
@@ -143,17 +143,17 @@ def save_evaluation_to_db(db, result: Dict[str, Any]):
     db.commit()
 
 # Función principal
-def calculate_performance(id_usuario: str) -> Optional[ResultadoEvaluacion]:
+def calcular_desempenio(id_usuario: str) -> Optional[ResultadoEvaluacion]:
     from app.core.database import SessionLocal
     db = SessionLocal()
     try:
-        records = get_raw_data_from_db(db, id_usuario)
+        records = obtener_datos_bd(db, id_usuario)
         if not records:
             return None
 
-        metrics = compute_metrics(records)
-        references = get_group_references_from_db(db)
-        puntaje = calculate_ies_and_score(metrics, references["tref_p"], references["tref_r"])
+        metrics = calcular_metricas(records)
+        references = obtener_tiempo_referencias_db(db)
+        puntaje = calcular_formula_principal(metrics, references["tref_p"], references["tref_r"])
 
         if puntaje >= 80:
             nivel = "avanzado"
@@ -172,11 +172,11 @@ def calculate_performance(id_usuario: str) -> Optional[ResultadoEvaluacion]:
             "textos_considerados": metrics["textos_considerados"]
         }
 
-        save_evaluation_to_db(db, resultado)
+        guardar_evaluacion(db, resultado)
 
         return ResultadoEvaluacion(**resultado)
     except Exception as e:
-        print(f"ERROR crítico en calculate_performance para {id_usuario}: {e}")
+        print(f"ERROR crítico en calcular_desempenio para {id_usuario}: {e}")
         db.rollback()
         return None
     finally:

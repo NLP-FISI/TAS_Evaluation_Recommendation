@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
 from app.services.evaluation_performance_service import (
-    get_raw_data_from_db,
-    calculate_performance
+    obtener_datos_bd,
+    calcular_desempenio
 )
 from app.schemas.evaluation_performance import RegistroEvaluacionSalida, ResultadoEvaluacion
 from app.core.database import SessionLocal
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/performance", tags=["Evaluación de desempeño"])
 def get_performance_data(id_usuario: str):
     db = SessionLocal()
     try:
-        data = get_raw_data_from_db(db, id_usuario)
+        data = obtener_datos_bd(db, id_usuario)
         if not data:
             raise HTTPException(status_code=404, detail="No se encontraron registros")
         return data
@@ -24,7 +24,7 @@ def get_performance_data(id_usuario: str):
 def evaluate_student(id_usuario: str):
     db = SessionLocal()
     try:
-        result = calculate_performance(id_usuario)
+        result = calcular_desempenio(id_usuario)
         if not result:
             raise HTTPException(status_code=404, detail="No se pudo calcular el resultado")
         return result

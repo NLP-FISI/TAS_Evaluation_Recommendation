@@ -1,0 +1,17 @@
+# --- Core API ---
+fastapi>=0.110
+uvicorn[standard]>=0.23
+
+# --- DB ---
+SQLAlchemy>=2.0
+psycopg2-binary>=2.9   
+python-dotenv>=1.0
+
+# --- NLP / Embeddings en español ---
+sentence-transformers>=2.5
+scikit-learn>=1.3
+torch>=2.1                
+
+# --- Datos / utilidades ---
+pandas>=2.0
+Faker>=25.0   

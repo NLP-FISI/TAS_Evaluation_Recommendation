@@ -1,65 +1,78 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
+DB_CONFIG = {
+    "dbname": "railway",
+    "user": "recomendacion01",
+    "password": "d2$$4Recom",
+    "host": "shortline.proxy.rlwy.net",
+    "port": 31885
+}
+
 class TextRecommendationService:
-
     @staticmethod
-    async def get_recommended_texts(id_usuario: int):
-        """
-        Lógica que filtra textos basados en el grado del usuario y los tipos de texto correspondientes.
-        """
+    async def get_recommendations(id_usuario: int):
+        conn = None
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cur = conn.cursor(cursor_factory=RealDictCursor)
 
-        # 🔹 1. Conectarse a la base de datos (Railway)
-        conn = psycopg2.connect(
-            host="shortline.proxy.rlwy.net",
-            port="31885",
-            user="recomendacion01",
-            password="d2$$4Recom",
-            database="railway"
-        )
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+            # 1️⃣ Obtener grado del usuario
+            cur.execute("""
+                SELECT u.id_grado, g.nombre_grado
+                FROM usuario u
+                JOIN grado g ON u.id_grado = g.id_grado
+                WHERE u.id_usuario = %s;
+            """, (id_usuario,))
+            user_data = cur.fetchone()
 
-        # 🔹 2. Obtener el grado del usuario
-        cur.execute("SELECT ID_Grado FROM Usuario WHERE ID_Usuario = %s;", (id_usuario,))
-        grado_row = cur.fetchone()
+            if not user_data:
+                return {"mensaje": "Usuario no encontrado."}
 
-        if not grado_row:
-            cur.close()
-            conn.close()
-            return {"mensaje": "Usuario no encontrado o sin grado registrado."}
+            id_grado = user_data["id_grado"]
+            nombre_grado = user_data["nombre_grado"]
 
-        grado = grado_row["ID_Grado"]
+            # 2️⃣ Obtener textos asociados al grado del usuario
+            # (en este caso, filtramos por los tipos de texto que existan para ese grado)
+            cur.execute("""
+                SELECT 
+                    t.id_texto,
+                    t.titulo,
+                    t.contenido,
+                    t.id_tematica,
+                    te.nombre_tematica,
+                    t.id_tipo_texto,
+                    tt.nombre_tipo_texto
+                FROM texto t
+                JOIN tipo_texto tt ON t.id_tipo_texto = tt.id_tipo_texto
+                JOIN tematica te ON t.id_tematica = te.id_tematica
+                WHERE t.id_tipo_texto IN (
+                    SELECT DISTINCT tx.id_tipo_texto
+                    FROM texto tx
+                    JOIN tipo_texto ttx ON tx.id_tipo_texto = ttx.id_tipo_texto
+                    JOIN usuario u ON u.id_grado = %s
+                );
+            """, (id_grado,))
 
-        # 🔹 3. Definir tipos de texto según el grado (regla simulada)
-        tipos_por_grado = {
-            2: [1, 3],  # Narrativo e Instructivo
-            3: [1, 2],  # Narrativo y Expositivo
-            4: [2, 3],  # Expositivo e Instructivo
-            5: [2],     # Expositivo
-            6: [4]      # Argumentativo (por ejemplo)
-        }
+            textos = cur.fetchall()
 
-        tipos_texto = tipos_por_grado.get(grado, [1])
+            if not textos:
+                return {
+                    "mensaje": "No se encontraron textos relacionados con el grado del usuario.",
+                    "id_usuario": id_usuario,
+                    "grado_usuario": nombre_grado
+                }
 
-        # 🔹 4. Obtener textos según los tipos (aunque la BD esté vacía)
-        cur.execute("""
-            SELECT t.ID_Texto, t.Título, t.Contenido, te.Nombre_Tematica, tt.Nombre_Tipo_Texto
-            FROM Texto t
-            JOIN Tematica te ON t.ID_Tematica = te.ID_Tematica
-            JOIN Tipo_Texto tt ON t.ID_Tipo_Texto = tt.ID_Tipo_Texto
-            WHERE t.ID_Tipo_Texto = ANY(%s);
-        """, (tipos_texto,))
+            return {
+                "id_usuario": id_usuario,
+                "grado_usuario": nombre_grado,
+                "total_textos": len(textos),
+                "textos_recomendados": textos
+            }
 
-        textos = cur.fetchall()
+        except Exception as e:
+            return {"error": str(e)}
 
-        cur.close()
-        conn.close()
-
-        # 🔹 5. Retornar la respuesta
-        return {
-            "id_usuario": id_usuario,
-            "grado": grado,
-            "tipos_texto": tipos_texto,
-            "total_textos_encontrados": len(textos),
-            "textos": textos
-        }
+        finally:
+            if conn:
+                conn.close()

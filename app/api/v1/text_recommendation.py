@@ -8,7 +8,4 @@ router = APIRouter(
 
 @router.get("/{id_usuario}")
 async def get_recommended_texts(id_usuario: int):
-    """
-    Devuelve los textos recomendados según el grado del usuario.
-    """
-    return await TextRecommendationService.get_recommended_texts(id_usuario)
+    return await TextRecommendationService.get_recommendations(id_usuario)

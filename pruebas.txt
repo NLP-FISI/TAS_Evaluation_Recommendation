@@ -1,0 +1,4 @@
+router.include_router(recommendation_difficulty.router)
+{
+  "content": "El ecosistema amazónico presenta una biodiversidad compleja que requiere políticas de conservación integradas."
+}

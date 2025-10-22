@@ -1,7 +1,12 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from app.schemas.recommendation_schemas import RecommendationDifficultyRequest
 from app.services.recommendation_difficulty_service import actualizar_dificultad
+from app.schemas.recommendation_schemas import TextComplexityRequest, TextComplexityResponse
+from app.services.recommendation_difficulty_service import TextComplexityEvaluator
 
+
+router = APIRouter(prefix="/recommendation/difficulty",
+                   tags=["Recommendation - Difficulty"])
 
 #get principal para obtener dificultad_acumulada
 @router.get("/difi/{id_user}")
@@ -27,15 +32,6 @@ def update_difficulty(request: RecommendationDifficultyRequest, resultado: int):
     }
 
 #get para obtener dicicultad_acumulada anterior
-
-#get para obtener racha
-from fastapi import APIRouter, HTTPException
-from app.schemas.recommendation_schemas import TextComplexityRequest, TextComplexityResponse
-from app.services.recommendation_difficulty_service import TextComplexityEvaluator
-
-router = APIRouter(prefix="/recommendation/difficulty",
-                   tags=["Recommendation - Difficulty"])
-
 
 @router.post("/evaluate", response_model=TextComplexityResponse)
 async def evaluate_content_complexity(request: TextComplexityRequest):

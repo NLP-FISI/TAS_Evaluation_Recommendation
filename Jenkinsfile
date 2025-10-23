@@ -1,8 +1,8 @@
 pipeline {
     agent any
 
-    tools {
-        python 'Python3'
+    environment {
+        PATH = "${tool name: 'Python3', type: 'jenkins.plugins.shiningpanda.tools.PythonInstallation'}/bin:${env.PATH}"
     }
 
     stages {

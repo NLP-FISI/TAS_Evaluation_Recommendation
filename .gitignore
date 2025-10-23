@@ -6,3 +6,10 @@ __pycache__/
 .DS_Store
 .vscode/
 .idea/
+
+.env.dev
+.env.prod
+.env.test
+
+env/
+venv/

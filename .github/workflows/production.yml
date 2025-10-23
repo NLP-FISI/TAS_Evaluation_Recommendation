@@ -1,0 +1,26 @@
+name: Build and Push to ACR
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Login to Azure Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ secrets.ACR_LOGIN_SERVER }}
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+
+    - name: Build and Push Docker Image
+      run: |
+        docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/fastapi-ml-app:${{ github.sha }} .
+        docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/fastapi-ml-app:latest .
+        docker push ${{ secrets.ACR_LOGIN_SERVER }}/fastapi-ml-app:${{ github.sha }}
+        docker push ${{ secrets.ACR_LOGIN_SERVER }}/fastapi-ml-app:latest

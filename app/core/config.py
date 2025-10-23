@@ -2,10 +2,8 @@
 import os
 from dotenv import load_dotenv
 
-env_file = ".env.dev" if os.getenv("ENV") == "development" else ".env"
-
-# Carga las variables de entorno desde el archivo correspondiente
-load_dotenv(dotenv_path=env_file)
+# Carga las variables de entorno desde el archivo .env
+load_dotenv()
 
 class Settings:
     DB_USER: str = os.getenv("DB_USER")

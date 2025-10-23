@@ -10,7 +10,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                    credentialsId: 'github-credentials',
+                    credentialsId: 'github-token',
                     url: 'https://github.com/NLP-FISI/TAS_Evaluation_Recommendation.git'
             }
         }

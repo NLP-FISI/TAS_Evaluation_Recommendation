@@ -31,6 +31,8 @@ class Usuario(Base):
 
     # Relaciones
     grado = relationship("Grado", back_populates="usuarios")
+    desempenio = relationship(
+        "Desempenio", back_populates="usuario", uselist=False)
     
     # Relación muchos a muchos con la tabla Tematica a través de la tabla de unión
     preferencias = relationship(

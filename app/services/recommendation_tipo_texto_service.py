@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.usuario import Usuario
 from app.models.tipo_texto import TipoTexto
+# from app.models.diagnostic import TipoTexto
 import random
 
 

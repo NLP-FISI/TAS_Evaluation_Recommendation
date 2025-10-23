@@ -6,6 +6,7 @@ from sqlalchemy import (Column, Integer, String, Boolean, DateTime,
                         ForeignKey, Table, Text, Enum as SQLEnum)
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.sql import func
+from app.models.tipo_texto import TipoTexto
 import enum
 import logging # Importar logging para advertencias
 
@@ -28,11 +29,11 @@ except ImportError:
 
 # --- Tablas de soporte (si no existen ya en otro modelo) ---
 
-class TipoTexto(Base):
-    __tablename__ = 'tipo_texto'
-    id_tipo_texto = Column(Integer, primary_key=True, index=True)
-    nombre_tipo_texto = Column(String(50), nullable=False, unique=True)
-    textos = relationship("Texto", back_populates="tipo_texto")
+# class TipoTexto(Base):
+#     __tablename__ = 'tipo_texto'
+#     id_tipo_texto = Column(Integer, primary_key=True, index=True)
+#     nombre_tipo_texto = Column(String(50), nullable=False, unique=True)
+#     textos = relationship("Texto", back_populates="tipo_texto")
 
 class Dificultad(Base):
     __tablename__ = 'dificultad'

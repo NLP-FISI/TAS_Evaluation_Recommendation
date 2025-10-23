@@ -19,7 +19,6 @@ async def obtener_textos(data: RecommendationGenerationRequest):
     Recibe los 4 IDs, hace una llamada GET al endpoint externo
     /ejemplo/contenido/obtener y devuelve la respuesta en el formato BaseModel.
     """
-    #url_externa = "https://tas-content-generation.onrender.com/contenido/obtener"
     url_externa = f"{os.getenv("API_GENERATION")}/contenido/obtener"
 
     params = {

@@ -8,7 +8,7 @@ from typing import List
 
 # from app.schemas.diagnostic_schemas import DiagnosticStage1Request, DiagnosticStage1Response, Answer
 from app.models.diagnostic import Pregunta, Alternativa, ResultadoDiagnostico, Texto # Importamos Texto también
-from app.models.user_profile import Usuario # Asumimos que Usuario está en user_profile
+from app.models.usuario import Usuario # Usuario está en usuario.py
 
 class Answer(BaseModel):
     """Modelo para representar una respuesta enviada por el estudiante."""

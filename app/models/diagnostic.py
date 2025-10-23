@@ -16,20 +16,13 @@ except ImportError:
     logging.warning("app.core.database.Base no encontrada. Usando declarative_base local.")
     Base = declarative_base()
 
-# Aseguramos que los modelos Usuario y Tematica estén disponibles desde user_profile
+# Aseguramos que los modelos Usuario y Tematica estén disponibles desde archivos separados
 try:
-    from .user_profile import Usuario, Tematica
+    from .usuario import Usuario
+    from .tematica import Tematica
 except ImportError:
-    # SI ESTE ERROR OCURRE, ALGO ESTÁ MAL CON LA ESTRUCTURA O user_profile.py
-    logging.error("No se pudieron importar Usuario y Tematica desde .user_profile. Asegúrate que app/models/user_profile.py exista y sea correcto.")
-    # NO REDEFINIMOS LAS CLASES AQUÍ PARA EVITAR ERRORES DE DUPLICADOS
-    # Si la importación falla, la aplicación probablemente no funcionará correctamente,
-    # pero al menos no tendremos el error de definición duplicada al iniciar.
-    # Necesitaríamos arreglar la causa raíz de por qué no se puede importar.
-    # Temporalmente, podríamos poner placeholders si fuera estrictamente necesario,
-    # pero es mejor arreglar la importación.
-    # class Usuario(Base): pass # Placeholder - NO RECOMENDADO
-    # class Tematica(Base): pass # Placeholder - NO RECOMENDADO
+    # SI ESTE ERROR OCURRE, ALGO ESTÁ MAL CON LA ESTRUCTURA
+    logging.error("No se pudieron importar Usuario desde .usuario o Tematica desde .tematica.")
     raise # Relanzamos el error de importación para saber que algo falló
 
 

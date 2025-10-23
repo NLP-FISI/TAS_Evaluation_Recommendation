@@ -1,8 +1,8 @@
 pipeline {
     agent any
 
-    environment {
-        PATH = "${tool name: 'Python3', type: 'jenkins.plugins.shiningpanda.tools.PythonInstallation'}/bin:${env.PATH}"
+    tools {
+        jenkins.plugins.shiningpanda.tools.PythonInstallation('Python3')
     }
 
     stages {
@@ -36,8 +36,9 @@ pipeline {
 
         stage('Quality Analysis') {
             steps {
-                echo 'Aquí más adelante integraremos SonarQube para Python.'
+                echo 'Integración con SonarQube pendiente.'
             }
         }
     }
 }
+

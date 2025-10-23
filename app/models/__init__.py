@@ -13,7 +13,7 @@ from app.core.database import Base
 from .usuario import Usuario, usuario_preferencia_table
 from .grado import Grado
 from .tematica import Tematica
-from .diagnostic import Texto, Pregunta, Alternativa, ResultadoDiagnostico, TipoPregunta, Dificultad, TipoTexto
+from .diagnostic import Texto, Pregunta, Alternativa, ResultadoDiagnostico, TipoPregunta, Dificultad
 from .recommendation import ExperienceLevel
 # Asumiendo que Desempenio está en su propio archivo
 try:
@@ -35,7 +35,7 @@ __all__ = [
     "ResultadoDiagnostico",
     "TipoPregunta",
     "Dificultad",
-    "TipoTexto",
+    # "TipoTexto",
     "ExperienceLevel",
     *(["Desempenio"] if Desempenio else [])
     # Nota: No solemos incluir las tablas de unión (como usuario_preferencia_table) en __all__

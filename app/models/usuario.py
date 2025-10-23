@@ -14,6 +14,7 @@ class Usuario(Base):
     id_usuario = Column(Integer, primary_key=True, index=True)
     student_id = Column(String(100), unique=True, index=True, nullable=False)
     id_grado = Column(Integer, ForeignKey("grado.id_grado"))
+    id_dificultad = Column (Integer)
     nombre_usuario = Column(String(50), nullable=False)
     apellido_usuario = Column(String(50), nullable=False)
     contrasena = Column(String(255), nullable=False)  # Campo requerido
@@ -30,6 +31,8 @@ class Usuario(Base):
 
     # Relaciones
     grado = relationship("Grado", back_populates="usuarios")
+    desempenio = relationship(
+        "Desempenio", back_populates="usuario", uselist=False)
     
     # Relación muchos a muchos con la tabla Tematica a través de la tabla de unión
     preferencias = relationship(

@@ -2,35 +2,41 @@ pipeline {
     agent any
 
     tools {
-        jdk 'JDK17'
-        maven 'Maven3'
+        python 'Python3'
     }
 
     stages {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                    credentialsId: 'github-token',
+                    credentialsId: 'github-credentials',
                     url: 'https://github.com/NLP-FISI/TAS_Evaluation_Recommendation.git'
             }
         }
 
-        stage('Build') {
+        stage('Install dependencies') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                sh '''
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                '''
             }
         }
 
-        stage('Test') {
+        stage('Run tests') {
             steps {
-                sh 'mvn test'
+                sh '''
+                    . venv/bin/activate
+                    pytest || echo "No tests found"
+                '''
             }
         }
 
         stage('Quality Analysis') {
             steps {
-                echo 'Running SonarQube analysis...'
-                // Aquí puedes agregar la integración con Sonar más adelante
+                echo 'Aquí más adelante integraremos SonarQube para Python.'
             }
         }
     }

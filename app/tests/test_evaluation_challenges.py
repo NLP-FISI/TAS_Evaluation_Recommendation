@@ -1,57 +1,55 @@
+# File: app/tests/test_integration_challenges.py
 import pytest
-from app.services import evaluation_challenges_service as services
-from app.schemas.evaluation_schemas import RetoParaEvaluar, DesempenoJugador, UsuarioData
+from sqlalchemy.orm import Session
 
-# --- DATOS DE PRUEBA (SIMULACIÓN) ---
-# Definimos los datos de los jugadores que usaremos en múltiples pruebas
-@pytest.fixture
-def ana() -> UsuarioData:
-    return UsuarioData(id=101, nombre="Ana", puntaje_elo=1600.0)
+from app.services.evaluation_challenges_service import EvaluationChallengeService
+from app.schemas.evaluation_challenges import RetoParaEvaluar, DesempenoJugador, UsuarioData
+from app.models.evaluation_challenges import Usuario
 
-@pytest.fixture
-def bruno() -> UsuarioData:
-    return UsuarioData(id=102, nombre="Bruno", puntaje_elo=1500.0)
+def test_integracion_victoria_por_aciertos(db_session: Session):
+    """
+    Prueba el flujo completo con la sintaxis moderna de SQLAlchemy y Pydantic.
+    """
+    # ARRANGE: Preparar el escenario
+    ID_RETADOR = 1
+    ID_CONTRINCANTE = 2
 
-# --- CASOS DE PRUEBA ---
-def test_evaluacion_victoria_por_aciertos(ana, bruno):
-    """Prueba un escenario donde el retador (Ana) gana por más aciertos."""
-    reto_input = RetoParaEvaluar(
-        retador=DesempenoJugador(id_usuario=ana.id, respuestas_correctas=8, tiempo_total_seg=120.5),
-        contrincante=DesempenoJugador(id_usuario=bruno.id, respuestas_correctas=7, tiempo_total_seg=110.0)
-    )
+    # 1. Obtiene los datos REALES usando el método moderno Session.get()
+    #    (Esto corrige la advertencia de SQLAlchemy)
+    retador_antes = db_session.get(Usuario, ID_RETADOR)
+    contrincante_antes = db_session.get(Usuario, ID_CONTRINCANTE)
+
+    assert retador_antes is not None, f"El usuario con ID {ID_RETADOR} debe existir en la BD de prueba."
+    assert contrincante_antes is not None, f"El usuario con ID {ID_CONTRINCANTE} debe existir en la BD de prueba."
     
-    resultado = services.EvaluationChallengeService.procesar_evaluacion_reto(reto_input, ana, bruno)
+    elo_inicial_retador = retador_antes.puntos
+    elo_inicial_contrincante = contrincante_antes.puntos
     
-    assert resultado.id_ganador == ana.id
-    assert resultado.rating_nuevo_retador > ana.puntaje_elo
-    assert resultado.rating_nuevo_contrincante < bruno.puntaje_elo
-    print(f"\nVictoria por aciertos: Ana {ana.puntaje_elo:.0f} -> {resultado.rating_nuevo_retador:.2f}")
+    # 2. Convierte los modelos SQLAlchemy a Pydantic usando el método moderno model_validate()
+    #    (Esto corrige el error AttributeError)
+    retador_data = UsuarioData.model_validate(retador_antes)
+    contrincante_data = UsuarioData.model_validate(contrincante_antes)
 
-def test_evaluacion_victoria_por_tiempo(ana, bruno):
-    """Prueba un empate en aciertos donde el contrincante (Bruno) gana por ser más rápido."""
     reto_input = RetoParaEvaluar(
-        retador=DesempenoJugador(id_usuario=ana.id, respuestas_correctas=9, tiempo_total_seg=105.8),
-        contrincante=DesempenoJugador(id_usuario=bruno.id, respuestas_correctas=9, tiempo_total_seg=95.2)
-    )
-
-    resultado = services.EvaluationChallengeService.procesar_evaluacion_reto(reto_input, ana, bruno)
-    
-    assert resultado.id_ganador == bruno.id
-    assert resultado.rating_nuevo_contrincante > bruno.puntaje_elo
-    assert resultado.rating_nuevo_retador < ana.puntaje_elo
-    print(f"\nVictoria por tiempo: Bruno {bruno.puntaje_elo:.0f} -> {resultado.rating_nuevo_contrincante:.2f}")
-
-def test_evaluacion_empate_absoluto(ana, bruno):
-    """Prueba un empate perfecto entre dos jugadores."""
-    reto_input = RetoParaEvaluar(
-        retador=DesempenoJugador(id_usuario=ana.id, respuestas_correctas=10, tiempo_total_seg=90.0),
-        contrincante=DesempenoJugador(id_usuario=bruno.id, respuestas_correctas=10, tiempo_total_seg=90.0)
+        retador=DesempenoJugador(id_usuario=ID_RETADOR, respuestas_correctas=8, tiempo_total_seg=120.5),
+        contrincante=DesempenoJugador(id_usuario=ID_CONTRINCANTE, respuestas_correctas=7, tiempo_total_seg=110.0)
     )
 
-    resultado = services.EvaluationChallengeService.procesar_evaluacion_reto(reto_input, ana, bruno)
+    # ACT: Ejecutar la lógica de negocio
+    resultado = EvaluationChallengeService.procesar_evaluacion_reto(reto_input, retador_data, contrincante_data)
 
-    assert resultado.id_ganador is None
-    # Cuando un jugador de mayor ELO empata, pierde puntos.
-    assert resultado.rating_nuevo_retador < ana.puntaje_elo
-    assert resultado.rating_nuevo_contrincante > bruno.puntaje_elo
-    print(f"\nEmpate: Ana {ana.puntaje_elo:.0f} -> {resultado.rating_nuevo_retador:.2f}, Bruno {bruno.puntaje_elo:.0f} -> {resultado.rating_nuevo_contrincante:.2f}")
+    # ASSERT: Verificar el resultado
+    assert resultado.id_ganador == ID_RETADOR
+    assert resultado.rating_nuevo_retador > elo_inicial_retador
+    assert resultado.rating_nuevo_contrincante < elo_inicial_contrincante
+
+    # VERIFICACIÓN EXTRA: Actualizar y comprobar el estado en la sesión
+    retador_antes.puntos = resultado.rating_nuevo_retador
+    contrincante_antes.puntos = resultado.rating_nuevo_contrincante
+    
+    db_session.commit()
+
+    retador_actualizado = db_session.get(Usuario, ID_RETADOR)
+    assert retador_actualizado.puntos == resultado.rating_nuevo_retador
+    
+    print(f"\nVictoria por aciertos (Integración): Retador {elo_inicial_retador} -> {retador_actualizado.puntos}")

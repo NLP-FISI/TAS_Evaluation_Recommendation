@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
 from app.schemas.profiling_schemas import ProfilingRequest, ProfilingResponse
-from app.models.user_profile import Usuario, Grado, Tematica
+from app.models.usuario import Usuario
+from app.models.grado import Grado
+from app.models.tematica import Tematica
 
 
 class ProfilingService:

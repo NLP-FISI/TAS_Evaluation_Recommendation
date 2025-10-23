@@ -18,7 +18,8 @@ except ImportError:
 
 # Aseguramos que los modelos Usuario y Tematica estén disponibles desde user_profile
 try:
-    from .user_profile import Usuario, Tematica
+    from .usuario import Usuario
+    from .tematica import Tematica
 except ImportError:
     # SI ESTE ERROR OCURRE, ALGO ESTÁ MAL CON LA ESTRUCTURA O user_profile.py
     logging.error("No se pudieron importar Usuario y Tematica desde .user_profile. Asegúrate que app/models/user_profile.py exista y sea correcto.")

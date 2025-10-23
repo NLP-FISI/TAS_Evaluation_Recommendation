@@ -10,7 +10,9 @@ También asegura que todos los modelos usen la misma Base declarativa.
 from app.core.database import Base
 
 # Importar modelos de los diferentes archivos
-from .user_profile import Usuario, Grado, Tematica, usuario_preferencia_table
+from .usuario import Usuario
+from .grado import Grado
+from .tematica import Tematica, usuario_preferencia_table
 from .diagnostic import Texto, Pregunta, Alternativa, ResultadoDiagnostico, TipoPregunta, Dificultad, TipoTexto
 from .recommendation import ExperienceLevel
 # Asumiendo que Desempenio está en su propio archivo

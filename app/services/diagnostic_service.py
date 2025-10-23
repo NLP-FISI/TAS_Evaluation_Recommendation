@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 
 from app.models.diagnostic import Pregunta, Alternativa, ResultadoDiagnostico, Texto  # Importamos Texto 
-from app.models.user_profile import Usuario
+from app.models.usuario import Usuario
 
 # Importar esquemas Pydantic
 from app.schemas.diagnostic_schemas import (

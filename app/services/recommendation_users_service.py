@@ -1,87 +1,95 @@
 import numpy as np
 import pandas as pd
-from faker import Faker
-from sklearn.cluster import KMeans
-import random
-
-fake = Faker()
-
-# -----------------------------
-# Generar datos fake al iniciar
-# -----------------------------
+from sqlalchemy.orm import Session
+from sklearn.neighbors import NearestNeighbors
+from app.core.database import SessionLocal
+from app.models.usuario import Usuario
+from app.models.grado import Grado
+from app.models.desempenio import Desempenio
 
 
-def generar_datos_usuarios(n=100):
-    ciclos = ["Primaria", "Secundaria", "Universitario"]
-    data = []
+def obtener_datos_usuarios(db: Session):
+    """
+    Carga desde la BD los usuarios con sus características principales.
+    """
+    query = (
+        db.query(
+            Usuario.id_usuario,
+            Usuario.nombre_usuario,
+            Usuario.edad,
+            Usuario.puntos,
+            Usuario.monedas,
+            Usuario.id_grado,
+            Desempenio.puntaje,
+            Desempenio.exactitud,
+            Desempenio.promedio_tiempo_por_pregunta,
+            Grado.ciclo_grado
+        )
+        .join(Desempenio, Usuario.id_usuario == Desempenio.id_usuario)
+        .join(Grado, Usuario.id_grado == Grado.id_grado)
+        .filter(Usuario.activo == True)
+        .all()
+    )
 
-    for i in range(n):
-        desempeno = np.clip(np.random.normal(75, 15), 0, 100)
-        consistencia = np.clip(np.random.normal(70, 20), 0, 100)
-        diversificacion = np.clip(np.random.normal(60, 25), 0, 100)
-        ciclo = random.choice(ciclos)
-        tiempo_promedio = np.clip(np.random.normal(120, 30), 30, 240)
+    df = pd.DataFrame(query, columns=[
+        "id_usuario", "nombre_usuario", "edad", "puntos", "monedas", "id_grado",
+        "puntaje", "exactitud", "promedio_tiempo_por_pregunta", "ciclo_grado"
+    ])
 
-        nivel_experiencia = (0.5 * desempeno) + \
-            (0.3 * consistencia) + (0.2 * diversificacion)
-
-        data.append({
-            "user_id": i + 1,
-            "nombre": fake.first_name(),
-            "ciclo": ciclo,
-            "desempeno": round(desempeno, 2),
-            "consistencia": round(consistencia, 2),
-            "diversificacion": round(diversificacion, 2),
-            "tiempo_promedio": round(tiempo_promedio, 2),
-            "nivel_experiencia": round(nivel_experiencia, 2)
-        })
-
-    return pd.DataFrame(data)
-
-
-def entrenar_kmeans(df, n_clusters=4):
-    X = df[["nivel_experiencia", "tiempo_promedio"]]
-    model = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-    df["cluster"] = model.fit_predict(X)
-    return df, model
+    # Normalizamos valores faltantes
+    df = df.fillna(0)
+    return df
 
 
-# Entrenamiento inicial (data fake cargada al iniciar FastAPI)
-df_usuarios, modelo_kmeans = entrenar_kmeans(
-    generar_datos_usuarios(), n_clusters=4)
-
-
-# -----------------------------
-# Función de recomendación
-# -----------------------------
 def recomendar_oponentes(user_id: int, dificultad: str = "equilibrado"):
-    df = df_usuarios.copy()
+    db = SessionLocal()
+    df = obtener_datos_usuarios(db)
+    db.close()
 
-    if user_id not in df["user_id"].values:
+    if user_id not in df["id_usuario"].values:
         return {"error": "Usuario no encontrado."}
 
-    usuario = df[df["user_id"] == user_id].iloc[0]
-    mismo_cluster = df[df["cluster"] == usuario["cluster"]]
-    mismo_cluster = mismo_cluster[mismo_cluster["user_id"] != user_id]
-    mismo_cluster["diff_exp"] = abs(
-        mismo_cluster["nivel_experiencia"] - usuario["nivel_experiencia"])
-    mismo_cluster = mismo_cluster.sort_values(by="diff_exp")
+    # Seleccionamos al usuario base
+    usuario = df[df["id_usuario"] == user_id].iloc[0]
 
+    # Filtramos usuarios del mismo grado
+    mismo_grado = df[df["id_grado"] == usuario["id_grado"]]
+    mismo_grado = mismo_grado[mismo_grado["id_usuario"] != user_id]
+
+    if mismo_grado.empty:
+        return {"mensaje": "No hay oponentes disponibles en el mismo grado."}
+
+    # Seleccionamos características numéricas para KNN
+    features = ["puntaje", "exactitud",
+                "promedio_tiempo_por_pregunta", "puntos", "monedas"]
+    X = mismo_grado[features].values
+    user_vector = usuario[features].values.reshape(1, -1)
+
+    # Entrenamos un modelo KNN para medir similitud
+    knn = NearestNeighbors(n_neighbors=min(5, len(mismo_grado)))
+    knn.fit(X)
+    distances, indices = knn.kneighbors(user_vector)
+
+    # Ajustamos el rango de dificultad
     if dificultad == "fácil":
-        recomendados = mismo_cluster[mismo_cluster["nivel_experiencia"]
-                                     < usuario["nivel_experiencia"]].head(3)
+        idx = indices[0][-3:]  # oponentes más débiles (más lejos)
     elif dificultad == "desafiante":
-        recomendados = mismo_cluster[mismo_cluster["nivel_experiencia"]
-                                     > usuario["nivel_experiencia"]].head(3)
-    else:
-        recomendados = mismo_cluster.head(3)
+        idx = indices[0][:3]   # oponentes más fuertes (más cerca)
+    else:  # equilibrado
+        mid = len(indices[0]) // 2
+        idx = indices[0][max(0, mid-1):mid+2]
+
+    recomendados = mismo_grado.iloc[idx]
 
     return {
         "usuario_base": {
-            "user_id": int(usuario["user_id"]),
-            "nombre": usuario["nombre"],
-            "nivel_experiencia": float(usuario["nivel_experiencia"]),
-            "cluster": int(usuario["cluster"])
+            "id_usuario": int(usuario["id_usuario"]),
+            "nombre": usuario["nombre_usuario"],
+            "grado": int(usuario["id_grado"]),
+            "puntaje": int(usuario["puntaje"]),
+            "exactitud": int(usuario["exactitud"])
         },
-        "recomendaciones": recomendados[["user_id", "nombre", "nivel_experiencia", "cluster"]].to_dict(orient="records")
+        "recomendaciones": recomendados[[
+            "id_usuario", "nombre_usuario", "puntaje", "exactitud", "puntos", "monedas"
+        ]].to_dict(orient="records")
     }

@@ -15,16 +15,31 @@ class Answer(BaseModel):
     question_id: int = Field(..., description="ID de la pregunta respondida.")
     alternative_id: int = Field(..., description="ID de la alternativa seleccionada.")
 
+# --- Esquemas para la Etapa 1 (F-02.A) ---
+
 class DiagnosticStage1Request(BaseModel):
-    """Modelo para la solicitud del diagnóstico Etapa 1."""
-    student_id: str = Field(..., description="ID único del estudiante (el mismo usado en profiling).")
-    answers: List[Answer] = Field(..., min_length=2, max_length=2, description="Lista con exactamente dos respuestas.")
+    """Solicitud para la Etapa 1 del diagnóstico."""
+    student_id: str = Field(..., description="ID único del estudiante (puede ser string)")
+    answers: List[Answer] = Field(..., min_length=2, max_length=2, description="Lista con exactamente 2 respuestas")
 
 class DiagnosticStage1Response(BaseModel):
-    """Modelo para la respuesta del diagnóstico Etapa 1."""
+    """Respuesta de la Etapa 1 del diagnóstico."""
     student_id: str
     decision: str = Field(..., description="'CONTINUAR' o 'FINALIZAR'")
-    correct_answers_count: int = Field(..., ge=0, le=2, description="Número de respuestas correctas (0, 1 o 2).")
+    correct_answers_count: int = Field(..., ge=0, le=2, description="Número de respuestas correctas (0, 1 o 2)")
+    message: str
+
+# --- Esquemas para la Etapa 2 (F-02.B) ---
+
+class DiagnosticStage2Request(BaseModel):
+    """Solicitud para la Etapa 2 del diagnóstico."""
+    student_id: str = Field(..., description="ID único del estudiante (puede ser string)")
+    answers: List[Answer] = Field(..., min_length=3, max_length=3, description="Lista con exactamente 3 respuestas")
+
+class DiagnosticStage2Response(BaseModel):
+    """Respuesta de la Etapa 2 del diagnóstico."""
+    student_id: str
+    correct_answers_count: int = Field(..., ge=0, le=3, description="Número de respuestas correctas (0, 1, 2 o 3)")
     message: str
 
 

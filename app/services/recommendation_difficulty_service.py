@@ -34,18 +34,6 @@ def actualizar_dificultad(theta, racha, beta, resultado, eta=0.6):
     return theta_nuevo, racha, beta_siguiente, p
 
 
-# #DATOS>
-# theta = 3.0   # dificultad acumulada inicial
-# racha = 0     # sin racha aún
-# beta = 3      # el reto anterior fue dificultad 3
-
-
-# resultados = [1, 1, 1, 1, 0, 0]  # tres aciertos seguidos
-
-# for r in resultados:
-#     theta, racha, beta_siguiente, p = actualizar_dificultad(theta, racha, beta, r)
-#     print(f"r={r}, θ={theta:.3f}, racha={racha}, prob={p:.3f}, siguiente={beta_siguiente}")
-#     beta = beta_siguiente
 import re
 from collections import Counter
 from app.schemas.recommendation_schemas import TextComplexityResponse

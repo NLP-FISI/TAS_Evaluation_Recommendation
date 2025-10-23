@@ -8,7 +8,7 @@ class Usuario(Base):
 
     id_usuario = Column(Integer, primary_key=True, index=True)
     id_grado = Column(Integer, ForeignKey("grado.id_grado"))
-    id_dificultad = Column (Integer, ForeignKey("dificultad.id_dificultad"))
+    #id_dificultad = Column (Integer)
     nombre_usuario = Column(String(50))
     apellido_usuario = Column(String(50))
     genero = Column(String(1))
@@ -26,4 +26,3 @@ class Usuario(Base):
 
     grado = relationship("Grado", back_populates="usuarios")
     desempenio = relationship("Desempenio", back_populates="usuario")
-    dificultad = relationship("Dificultad", back_populates="usuarios")

@@ -5,9 +5,9 @@ from typing import Dict,List, Optional
 
 class RecommendationDifficultyRequest(BaseModel):
     id_user: int = Field(..., description="Identificador único del usuario")
-    streak: int = Field(..., ge=-3, le=3, description="Racha actual (-3 a +3)")
-    accumulated_difficulty: float = Field(..., ge=1, le=5, description="Dificultad acumulada (1 a 5)")
-    challenge_difficulty: int = Field(..., ge=1, le=5, description="Dificultad del reto anterior (1 a 5)")
+    #streak: int = Field(..., ge=-3, le=3, description="Racha actual (-3 a +3)")
+    #accumulated_difficulty: float = Field(..., ge=1, le=5, description="Dificultad acumulada (1 a 5)")
+    #challenge_difficulty: int = Field(..., ge=1, le=5, description="Dificultad del reto anterior (1 a 5)")
       
 class RecommendationDifficultyResponse(BaseModel):
     student_id: str

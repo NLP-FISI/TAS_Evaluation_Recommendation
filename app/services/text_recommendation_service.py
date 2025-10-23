@@ -13,7 +13,7 @@ env_file = ".env.dev" if os.getenv("ENV") == "development" else ".env"
 load_dotenv(dotenv_path=env_file)
 
 API_GENERATION = os.getenv(
-    "API_GENERATION") or "https://tas-content-generation.onrender.com"
+    "API_GENERATION")
 
 
 class TextRecommendationService:

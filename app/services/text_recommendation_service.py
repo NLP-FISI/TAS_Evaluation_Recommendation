@@ -1,16 +1,24 @@
 # app/services/text_recommendation_service.py
+#Variables de entorno
+import os
+from dotenv import load_dotenv
+
+env_file = ".env.dev" if os.getenv("ENV") == "development" else ".env"
+
+load_dotenv(dotenv_path=env_file)
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
 # import requests  # (Descomenta cuando se use la ruta externa)
 
-DB_CONFIG = {
-    "dbname": "railway",
-    "user": "postgres",
-    "password": "YwYQiHoQkwgfhpIJBUVmvqrUKOUMiRBo",
-    "host": "crossover.proxy.rlwy.net",
-    "port": 57963
-}
 
+DB_CONFIG = {
+    "host": os.getenv("DB_HOST"),
+    "port": os.getenv("DB_PORT"),
+    "database": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD")
+}
 
 class TextRecommendationService:
     @staticmethod
@@ -21,6 +29,7 @@ class TextRecommendationService:
             cur = conn.cursor(cursor_factory=RealDictCursor)
 
             # 1️⃣ OBTENER DATOS DEL USUARIO (grado, temática, desempeño)
+            # en d.promedio se puso provisionalmente exactitud
             cur.execute("""
                 SELECT 
                     u.id_usuario,
@@ -28,12 +37,12 @@ class TextRecommendationService:
                     g.nombre_grado,
                     u.id_tematica,
                     te.nombre_tematica,
-                    COALESCE(d.promedio, 0) AS puntaje_promedio,
-                    COALESCE(d.nivel_actual, 'básico') AS nivel_actual
+                    COALESCE(d.exactitud, 0) AS puntaje_promedio,
+                    COALESCE(d.nivel, 'básico') AS nivel_actual
                 FROM usuario AS u
                 JOIN grado AS g ON u.id_grado = g.id_grado
                 LEFT JOIN tematica AS te ON u.id_tematica = te.id_tematica
-                LEFT JOIN desempeno AS d ON u.id_usuario = d.id_usuario
+                LEFT JOIN desempenio AS d ON u.id_usuario = d.id_usuario
                 WHERE u.id_usuario = %s;
             """, (id_usuario,))
             user_data = cur.fetchone()
@@ -51,15 +60,15 @@ class TextRecommendationService:
                     te.nombre_tematica,
                     t.id_tipo_texto,
                     tt.nombre_tipo_texto,
-                    t.nivel_dificultad
+                    t.id_dificultad
                 FROM texto t
                 JOIN tematica te ON t.id_tematica = te.id_tematica
                 JOIN tipo_texto tt ON t.id_tipo_texto = tt.id_tipo_texto
                 WHERE t.id_tematica = %s
                 ORDER BY 
                     CASE 
-                        WHEN t.nivel_dificultad = %s THEN 1
-                        WHEN t.nivel_dificultad = 'medio' THEN 2
+                        WHEN t.id_dificultad = %s THEN 1
+                        WHEN t.id_dificultad = 'medio' THEN 2
                         ELSE 3
                     END;
             """, (user_data["id_tematica"], user_data["nivel_actual"]))

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.schemas.evaluation_challenges import RetoParaEvaluar, ResultadoEvaluacion, UsuarioData
 from app.services.evaluation_challenges_service import EvaluationChallengeService
 from app.core.database import get_db
-from app.models.evaluation_challenges import Usuario 
+from app.models.usuario import Usuario 
 
 router = APIRouter(
     prefix="/evaluation-challenges",

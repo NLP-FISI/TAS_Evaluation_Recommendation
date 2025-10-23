@@ -1,7 +1,7 @@
 # This module defines the Pydantic models for handling evaluation input and output data.
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Dict
+from typing import Dict,List, Optional
 
 class RecommendationDifficultyRequest(BaseModel):
     id_user: int = Field(..., description="Identificador único del usuario")
@@ -36,3 +36,29 @@ class TextComplexityResponse(BaseModel):
     score: float
     level: str
     metrics: Dict[str, float]
+
+
+class RecommendationGenerationRequest(BaseModel):
+    id_usuario: int
+    id_tipo_texto: int
+    id_tematica: int
+    id_dificultad: int
+
+class Alternativa(BaseModel):
+    id_alternativa: int
+    contenido: str
+
+class Pregunta(BaseModel):
+    id_pregunta: int
+    contenido: str
+    alternativas: List[Alternativa]
+
+class Texto(BaseModel):
+    id_texto: int
+    titulo: str
+    contenido: str
+    preguntas: List[Pregunta]
+
+class RecommendationGenerationResponse(BaseModel):
+    textos_obtenidos: int
+    textos: List[Texto]

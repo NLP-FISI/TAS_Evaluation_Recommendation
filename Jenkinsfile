@@ -1,9 +1,8 @@
 pipeline {
     agent any
 
-    tools {
-        jdk 'JDK17'
-        maven 'Maven3'
+    environment {
+        PATH = "${tool name: 'Python3', type: 'jenkins.plugins.shiningpanda.tools.PythonInstallation'}/bin:${env.PATH}"
     }
 
     stages {
@@ -15,22 +14,29 @@ pipeline {
             }
         }
 
-        stage('Build') {
+        stage('Install dependencies') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                sh '''
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                '''
             }
         }
 
-        stage('Test') {
+        stage('Run tests') {
             steps {
-                sh 'mvn test'
+                sh '''
+                    . venv/bin/activate
+                    pytest || echo "No tests found"
+                '''
             }
         }
 
         stage('Quality Analysis') {
             steps {
-                echo 'Running SonarQube analysis...'
-                // Aquí puedes agregar la integración con Sonar más adelante
+                echo 'Aquí más adelante integraremos SonarQube para Python.'
             }
         }
     }

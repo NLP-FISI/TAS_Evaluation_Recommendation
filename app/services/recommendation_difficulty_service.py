@@ -1,4 +1,39 @@
 import math
+
+def prob_correct(theta, beta):
+    return 1.0 / (1.0 + math.exp(-(theta - beta)))
+
+def actualizar_dificultad(theta, racha, beta, resultado, eta=0.6): 
+    """
+    theta: dificultad acumulada actual (float)
+    racha: entero entre -3 y +3 (valor previo)
+    beta: dificultad del reto anterior (1..5)
+    resultado: 1 si correcto, 0 si incorrecto
+    devuelve: theta_nuevo, racha_nuevo, beta_siguiente, prob_estimada
+    """
+    p = prob_correct(theta, beta)
+    
+    # actualizar racha
+    if resultado == 1:
+        racha = min(racha + 1, 3)
+    else:
+        racha = max(racha - 1, -3)
+    
+    # factor por racha
+    factor = 1.0 + 0.1 * abs(racha)
+    
+    # actualizar theta
+    theta_nuevo = theta + eta * factor * (resultado - p)
+    
+    # limitar theta_nuevo entre 1 y 5
+    theta_nuevo = max(1, min(5, theta_nuevo))
+    
+    # mapear a dificultad siguiente
+    beta_siguiente = round(theta_nuevo)
+    
+    return theta_nuevo, racha, beta_siguiente, p
+
+
 import re
 from collections import Counter
 from app.schemas.recommendation_schemas import TextComplexityResponse

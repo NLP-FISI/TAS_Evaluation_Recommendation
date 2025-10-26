@@ -1,29 +1,43 @@
-# app/api/v1/recommendation_tiers.py
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 from app.services.recommendation_tiers_service import clasificar_jugador
-from faker import Faker
-import numpy as np
+from app.core.database import get_db
+from app.models.usuario import Usuario
+from app.models.desempenio import Desempenio
 
 router = APIRouter(prefix="/tiers", tags=["Clasificación de Tiers"])
 
-fake = Faker()
-
 
 @router.get("/{user_id}")
-def obtener_tier(user_id: int):
+def obtener_tier(user_id: int, db: Session = Depends(get_db)):
     """
-    Endpoint que devuelve el Tier del jugador según su nivel de experiencia.
-    Datos simulados.
+    Endpoint que devuelve el Tier del jugador según sus métricas reales
+    almacenadas en la base de datos.
     """
-    # Generamos un usuario fake para demostración
+
+    # Buscar usuario
+    usuario = db.query(Usuario).filter(Usuario.id_usuario == user_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+
+    # Buscar datos de desempeño
+    desempenio = db.query(Desempenio).filter(
+        Desempenio.id_usuario == user_id).first()
+    if not desempenio:
+        raise HTTPException(
+            status_code=404, detail="No hay datos de desempeño para este usuario.")
+
+    # Preparar datos reales según tu modelo Desempenio
     user_data = {
-        "user_id": user_id,
-        "nombre": fake.first_name(),
-        "nivel_experiencia": float(np.clip(np.random.normal(60, 25), 0, 100)),
-        "consistencia": float(np.clip(np.random.normal(70, 15), 0, 100)),
-        "tiempo_promedio": float(np.clip(np.random.normal(120, 30), 30, 240)),
-        "diversificacion": float(np.clip(np.random.normal(65, 25), 0, 100))
+        "user_id": usuario.id_usuario,
+        "nombre": f"{usuario.nombre_usuario} {usuario.apellido_usuario}",
+        "nivel_experiencia": float(desempenio.puntaje or 0),
+        "consistencia": float(desempenio.exactitud or 0),
+        "tiempo_promedio": float(desempenio.promedio_tiempo_por_pregunta or 0),
+        "diversificacion": float(desempenio.textos_considerados or 0),
     }
 
+    # Clasificar jugador según el modelo entrenado
     resultado = clasificar_jugador(user_data)
+
     return {"usuario": resultado}

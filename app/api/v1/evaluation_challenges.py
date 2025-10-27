@@ -36,8 +36,12 @@ def evaluate_challenge_result(
         raise HTTPException(status_code=404, detail=f"Usuario contrincante con ID {data.contrincante.id_usuario} no encontrado.")
 
     # Convertir los modelos SQLAlchemy a esquemas Pydantic para el servicio
-    retador_data = UsuarioData.from_attributes(retador_db)
-    contrincante_data = UsuarioData.from_attributes(contrincante_db)
+    # En Pydantic v2 la forma correcta de validar objetos con atributos es
+    # usar `model_validate(..., from_attributes=True)` o configurar
+    # `model_config = ConfigDict(from_attributes=True)` en el modelo.
+    # Evitamos usar el inexistente método `from_attributes`.
+    retador_data = UsuarioData.model_validate(retador_db, from_attributes=True)
+    contrincante_data = UsuarioData.model_validate(contrincante_db, from_attributes=True)
 
     # 2. Llamar al método de servicio (esta parte no cambia)
     resultado_evaluacion = EvaluationChallengeService.procesar_evaluacion_reto(

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.services.evaluation_challenges_service import EvaluationChallengeService
 from app.schemas.evaluation_challenges import RetoParaEvaluar, DesempenoJugador, UsuarioData
-from app.models.evaluation_challenges import Usuario
+from app.models.usuario import Usuario
 
 def test_integracion_victoria_por_aciertos(db_session: Session):
     """

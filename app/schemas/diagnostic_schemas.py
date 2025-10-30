@@ -20,7 +20,9 @@ class Answer(BaseModel):
 class DiagnosticStage1Request(BaseModel):
     """Solicitud para la Etapa 1 del diagnóstico."""
     student_id: str = Field(..., description="ID único del estudiante (puede ser string)")
-    answers: List[Answer] = Field(..., min_length=2, max_length=2, description="Lista con exactamente 2 respuestas")
+    # answers: List[Answer] = Field(..., min_length=2, max_length=2, description="Lista con exactamente 2 respuestas")
+    answers: List[Answer] = Field(..., min_items=2, max_items=2,
+                                  description="Lista con exactamente 2 respuestas")
 
 class DiagnosticStage1Response(BaseModel):
     """Respuesta de la Etapa 1 del diagnóstico."""
@@ -34,7 +36,8 @@ class DiagnosticStage1Response(BaseModel):
 class DiagnosticStage2Request(BaseModel):
     """Solicitud para la Etapa 2 del diagnóstico."""
     student_id: str = Field(..., description="ID único del estudiante (puede ser string)")
-    answers: List[Answer] = Field(..., min_length=3, max_length=3, description="Lista con exactamente 3 respuestas")
+    # answers: List[Answer] = Field(..., min_length=3, max_length=3, description="Lista con exactamente 3 respuestas")
+    answers: List[Answer] = Field(..., min_items=3, max_items=3, description="Lista con exactamente 3 respuestas")
 
 class DiagnosticStage2Response(BaseModel):
     """Respuesta de la Etapa 2 del diagnóstico."""

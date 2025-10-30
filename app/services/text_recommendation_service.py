@@ -9,13 +9,13 @@ from app.services.recommendation_tematica_service import recomendar_tematica
 from app.models.tipo_texto import TipoTexto
 from app.models.tematica import Tematica
 
-env_file = ".env.dev" if os.getenv("ENV") == "development" else ".env"
-load_dotenv(dotenv_path=env_file)
+# env_file = ".env.dev" if os.getenv("ENV") == "development" else ".env"
+# load_dotenv(dotenv_path=env_file)
 
-API_GENERATION = os.getenv(
-    "API_GENERATION") or "https://tas-content-generation.onrender.com"
+# API_GENERATION = os.getenv(
+#     "API_GENERATION")
 
-
+API_GENERATION = "https://tas-content-generation.onrender.com"
 class TextRecommendationService:
 
     @staticmethod

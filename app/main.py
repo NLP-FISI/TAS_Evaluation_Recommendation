@@ -25,3 +25,4 @@ app.include_router(api_router, prefix="/api/v1")
 @app.get("/")
 def read_root():
     return {"mensaje": "Bienvenido a la API"}
+# uvicorn app.main:app --reload

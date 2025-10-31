@@ -6,8 +6,8 @@ router = APIRouter(prefix="/recommendation/users",
                    tags=["Recommendation Users"])
 
 
-@router.get("/{user_id}")
-def get_recommended_users(
+@router.get("/{user_id}", operation_id="get_recommendation_users")
+def get_recommendation_users_endpoint(
     user_id: int,
     difficulty: str = Query("equilibrado", enum=[
                             "fácil", "equilibrado", "desafiante"])

@@ -41,7 +41,17 @@ class DiagnosticStage2Response(BaseModel):
     student_id: str
     correct_answers_count: int = Field(..., ge=0, le=3, description="Número de respuestas correctas (0, 1, 2 o 3)")
     message: str
+# --- ¡NUEVOS ESQUEMAS PARA F-03! ---
+class LevelAssignmentRequest(BaseModel):
+    """Solicitud para iniciar la asignación de nivel (F-03)."""
+    student_id: str = Field(..., description="ID del estudiante a calificar.")
 
+class LevelAssignmentResponse(BaseModel):
+    """Respuesta de la asignación de nivel (F-03)."""
+    student_id: str
+    assigned_level_label: str = Field(..., description="La etiqueta de nivel asignada (ej. '4to Grado')")
+    assigned_level_grade: int = Field(..., description="El ID del grado de competencia asignado (ej. 4)")
+    message: str
 
 class DiagnosticService:
 

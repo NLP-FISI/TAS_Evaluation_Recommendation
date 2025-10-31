@@ -5,25 +5,27 @@ from app.core.database import Base
 class Usuario(Base):
     __tablename__ = "usuario"
 
-    id_usuario = Column(Integer, primary_key=True, index=True)
-    student_id = Column(String(100), unique=True, index=True, nullable=False)
-    id_grado = Column(Integer, ForeignKey("grado.id_grado"))
+    id_usuario = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id_grado = Column(Integer, ForeignKey("grado.id_grado"), nullable=True)
     nombre_usuario = Column(String(50), nullable=False)
     apellido_usuario = Column(String(50), nullable=False)
-    contrasena = Column(String(255), nullable=False)  # Campo requerido
-    genero = Column(String(1))
-    edad = Column(Integer)
-    email = Column(String(50), unique=True, index=True)
-    fecha_registro = Column(DateTime)
-    activo = Column(Boolean, default=True)
-    monedas = Column(Integer, default=0)
-    puntos = Column(Integer, default=0)
-    configuracion_avatar = Column(JSON)
-    id_tematica = Column(Integer)
-    dificultad_acumulada = Column(Float)
+    genero = Column(String(1), nullable=True)
+    edad = Column(Integer, nullable=True)
+    email = Column(String(50), unique=True, index=True, nullable=False)
+    contrasena = Column(String(100), nullable=False)
+    fecha_registro = Column(DateTime, nullable=True)
+    activo = Column(Boolean, default=True, nullable=True)
+    monedas = Column(Integer, default=0, nullable=True)
+    puntos = Column(Integer, default=0, nullable=True)
+    configuracion_avatar = Column(JSON, nullable=True)
+    student_id = Column(String(100), unique=True, index=True, nullable=True)
+    id_tematica = Column(Integer, nullable=True)
+    dificultad_acumulada = Column(Float, nullable=True)
+    id_dificultad = Column(Integer, nullable=True)
 
     # Relaciones
     grado = relationship("Grado", back_populates="usuarios")
+    desempenio = relationship("Desempenio", back_populates="usuario", uselist=False)
     
     # Relación muchos a muchos con la tabla Tematica a través de la tabla de unión
     preferencias = relationship(

@@ -28,21 +28,6 @@ except ImportError:
 
 
 # --- Tablas de soporte (si no existen ya en otro modelo) ---
-
-# class TipoTexto(Base):
-#     __tablename__ = 'tipo_texto'
-#     id_tipo_texto = Column(Integer, primary_key=True, index=True)
-#     nombre_tipo_texto = Column(String(50), nullable=False, unique=True)
-#     textos = relationship("Texto", back_populates="tipo_texto")
-
-class Dificultad(Base):
-    __tablename__ = 'dificultad'
-    id_dificultad = Column(Integer, primary_key=True, index=True)
-    nombre_dificultad = Column(String(50), nullable=False, unique=True)
-    valor_dificultad = Column(Integer)
-    textos = relationship("Texto", back_populates="dificultad")
-    preguntas = relationship("Pregunta", back_populates="dificultad")
-
 class TipoPregunta(Base):
     __tablename__ = 'tipo_pregunta'
     id_tipo_pregunta = Column(Integer, primary_key=True, index=True)
@@ -51,21 +36,6 @@ class TipoPregunta(Base):
 
 
 # --- Modelos Principales para Diagnóstico ---
-
-class Texto(Base):
-    __tablename__ = 'texto'
-    id_texto = Column(Integer, primary_key=True, index=True)
-    id_tipo_texto = Column(Integer, ForeignKey('tipo_texto.id_tipo_texto'))
-    id_dificultad = Column(Integer, ForeignKey('dificultad.id_dificultad'))
-    id_tematica = Column(Integer, ForeignKey('tematica.id_tematica')) # Ahora usa la Tematica importada
-    titulo = Column(String(100))
-    contenido = Column(Text, nullable=False)
-
-    tipo_texto = relationship("TipoTexto", back_populates="textos")
-    dificultad = relationship("Dificultad", back_populates="textos")
-    # Asegúrate que la relación inversa exista en user_profile.py si usas preferencias
-    tematica = relationship("Tematica") # Relación simple si no necesitas back_populates aquí
-    preguntas = relationship("Pregunta", back_populates="texto")
 
 class Pregunta(Base):
     __tablename__ = 'pregunta'

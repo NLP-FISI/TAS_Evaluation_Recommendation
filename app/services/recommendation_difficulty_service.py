@@ -1,4 +1,12 @@
 import math
+import re
+from collections import Counter
+from app.schemas.recommendation_schemas import TextComplexityResponse
+from app.models.resultado_texto import ResultadoTexto
+from app.models.texto  import Texto
+from sqlalchemy import select, func
+from sqlalchemy.orm import Session
+from app.models.resultado_juego import ResultadoJuego
 
 def prob_correct(theta, beta):
     return 1.0 / (1.0 + math.exp(-(theta - beta)))
@@ -32,12 +40,6 @@ def actualizar_dificultad(theta, racha, beta, resultado, eta=0.6):
     beta_siguiente = round(theta_nuevo)
     
     return theta_nuevo, racha, beta_siguiente, p
-
-
-import re
-from collections import Counter
-from app.schemas.recommendation_schemas import TextComplexityResponse
-
 
 class TextComplexityEvaluator:
     """
@@ -92,3 +94,52 @@ class TextComplexityEvaluator:
                 "sentence_count": sentence_count
             }
         )
+
+# Calcula promedio de registro en la tabla resultado_texto, segun un usuario y un juego
+def obtener_promedio_dificultad_por_usuario_y_juego(db: Session, id_usuario: int, id_juego: int):
+    stmt = (
+        select(func.avg(Texto.id_dificultad).label("promedio_dificultad"))
+        .select_from(ResultadoTexto)
+        .join(Texto, ResultadoTexto.id_texto == Texto.id_texto)
+        .join(ResultadoJuego, ResultadoTexto.id_juego == ResultadoJuego.id_juego)
+        .where(
+            ResultadoTexto.id_usuario == id_usuario,
+            ResultadoTexto.id_juego == id_juego
+        )
+    )
+
+    resultado = db.execute(stmt).scalar()  # obtiene un solo valor (el promedio)
+
+    if resultado is not None:
+        return {"id_usuario": id_usuario, "id_juego": id_juego, "promedio_dificultad": round(resultado,2),"promedio_dificultad_entero":int(round(resultado))}
+    
+    return {"detail": "No se encontraron textos para este usuario y juego."}
+
+
+# Calcular si el resultado es positivo del juego (15 preguntas)
+def obtener_resultado_general_juego(db: Session, id_usuario: int, id_juego: int):
+    stmt = (
+        select(ResultadoJuego.correctas.label("correctas"),
+               ResultadoJuego.incorrectas.label("incorrectas"),
+               (ResultadoJuego.correctas - ResultadoJuego.incorrectas).label("resol"))
+        .select_from (ResultadoJuego)
+        .where(
+            ResultadoJuego.id_usuario == id_usuario,
+            ResultadoJuego.id_juego == id_juego
+        )
+    )
+    resultado = db.execute(stmt).first()
+    if resultado is None:
+        return {"detail": "No se encontraron resultados para este usuario y juego."}
+
+    # Calcular resultado del juego
+    resol = resultado.resol or -1
+    resultado_juego = 1 if resol > 0 else 0
+
+    return {
+        "id_usuario": id_usuario,
+        "id_juego": id_juego,
+        "correctas": resultado.correctas,
+        "incorrectas": resultado.incorrectas,
+        "resultado_juego": resultado_juego
+    }

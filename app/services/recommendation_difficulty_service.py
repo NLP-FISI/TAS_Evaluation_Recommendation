@@ -45,24 +45,24 @@ class TextComplexityEvaluator:
     """
 
     def evaluate_text(self, text: str) -> TextComplexityResponse:
-        # 1️⃣ Limpieza del texto
+        # 1Limpieza del texto
         clean_text = re.sub(r'[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]', '', text)
         words = clean_text.split()
         sentences = re.split(r'[.!?]', text)
 
-        # 2️⃣ Métricas básicas
+        # Métricas básicas
         word_count = len(words)
         sentence_count = max(len([s for s in sentences if s.strip() != '']), 1)
         avg_sentence_length = word_count / sentence_count
 
-        # 3️⃣ Longitud promedio de palabras
+        # Longitud promedio de palabras
         avg_word_length = sum(len(w) for w in words) / max(word_count, 1)
 
-        # 4️⃣ Vocabulario único
+        # Vocabulario único
         unique_words = len(set(words))
         lexical_density = unique_words / max(word_count, 1)
 
-        # 5️⃣ Cálculo del índice de complejidad (tipo Flesch adaptado)
+        # Cálculo del índice de complejidad (tipo Flesch adaptado)
         complexity_score = (
             0.4 * avg_sentence_length +
             0.6 * avg_word_length +
@@ -72,7 +72,7 @@ class TextComplexityEvaluator:
         # Normalizamos entre 0–100
         normalized_score = min(max(100 - complexity_score * 5, 0), 100)
 
-        # 6️⃣ Clasificación cualitativa
+        # Clasificación cualitativa
         if normalized_score > 70:
             level = "Fácil"
         elif normalized_score > 40:
@@ -80,7 +80,7 @@ class TextComplexityEvaluator:
         else:
             level = "Difícil"
 
-        # 7️⃣ Generamos respuesta
+        # Generamos respuesta
         return TextComplexityResponse(
             score=round(normalized_score, 2),
             level=level,

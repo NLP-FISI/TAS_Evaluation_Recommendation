@@ -14,6 +14,8 @@ class DesempenoJugador(BaseModel):
     id_usuario: int = Field(..., description="ID único del jugador.")
     respuestas_correctas: int = Field(..., ge=0, description="Número de respuestas correctas.")
     tiempo_total_seg: float = Field(..., ge=0, description="Tiempo total en segundos que tardó en responder.")
+    racha_victorias: int = Field(0, ge=0, description="Racha de victorias consecutivas del jugador.")
+    racha_derrotas: int = Field(0, ge=0, description="Racha de derrotas consecutivas del jugador.")
 
 class RetoParaEvaluar(BaseModel):
     retador: DesempenoJugador
@@ -30,6 +32,7 @@ class ResultadoEvaluacion(BaseModel):
     rating_nuevo_contrincante: int
     variacion_contrincante: int
     mensaje: str
+    mensaje_personalizado: Optional[str] = Field(None, description="Mensaje dinámico basado en el rendimiento.")
 
 class UsuarioData(BaseModel):
     """

@@ -1,55 +1,83 @@
-# File: app/tests/test_integration_challenges.py
 import pytest
-from sqlalchemy.orm import Session
-
 from app.services.evaluation_challenges_service import EvaluationChallengeService
 from app.schemas.evaluation_challenges import RetoParaEvaluar, DesempenoJugador, UsuarioData
-from app.models.usuario import Usuario
 
-def test_integracion_victoria_por_aciertos(db_session: Session):
-    """
-    Prueba el flujo completo con la sintaxis moderna de SQLAlchemy y Pydantic.
-    """
-    # ARRANGE: Preparar el escenario
-    ID_RETADOR = 1
-    ID_CONTRINCANTE = 2
+# --- Datos de prueba simulados ---
 
-    # 1. Obtiene los datos REALES usando el método moderno Session.get()
-    #    (Esto corrige la advertencia de SQLAlchemy)
-    retador_antes = db_session.get(Usuario, ID_RETADOR)
-    contrincante_antes = db_session.get(Usuario, ID_CONTRINCANTE)
+@pytest.fixture
+def usuario_base_retador() -> UsuarioData:
+    """Usuario retador con rating base."""
+    return UsuarioData(id_usuario=1, nombre_usuario="Retador", puntos=1500)
 
-    assert retador_antes is not None, f"El usuario con ID {ID_RETADOR} debe existir en la BD de prueba."
-    assert contrincante_antes is not None, f"El usuario con ID {ID_CONTRINCANTE} debe existir en la BD de prueba."
+@pytest.fixture
+def usuario_base_contrincante() -> UsuarioData:
+    """Usuario contrincante con rating base."""
+    return UsuarioData(id_usuario=2, nombre_usuario="Contrincante", puntos=1500)
+
+# --- Casos de prueba para la nueva lógica ---
+
+def test_victoria_simple_retador(usuario_base_retador, usuario_base_contrincante):
+    """Prueba una victoria normal del retador sin rachas."""
+    print("\n--- Test: Victoria Simple ---")
+    desempeno_retador = DesempenoJugador(id_usuario=1, respuestas_correctas=8, tiempo_total_seg=120)
+    desempeno_contrincante = DesempenoJugador(id_usuario=2, respuestas_correctas=6, tiempo_total_seg=130)
     
-    elo_inicial_retador = retador_antes.puntos
-    elo_inicial_contrincante = contrincante_antes.puntos
+    reto = RetoParaEvaluar(retador=desempeno_retador, contrincante=desempeno_contrincante)
     
-    # 2. Convierte los modelos SQLAlchemy a Pydantic usando el método moderno model_validate()
-    #    (Esto corrige el error AttributeError)
-    retador_data = UsuarioData.model_validate(retador_antes)
-    contrincante_data = UsuarioData.model_validate(contrincante_antes)
-
-    reto_input = RetoParaEvaluar(
-        retador=DesempenoJugador(id_usuario=ID_RETADOR, respuestas_correctas=8, tiempo_total_seg=120.5),
-        contrincante=DesempenoJugador(id_usuario=ID_CONTRINCANTE, respuestas_correctas=7, tiempo_total_seg=110.0)
-    )
-
-    # ACT: Ejecutar la lógica de negocio
-    resultado = EvaluationChallengeService.procesar_evaluacion_reto(reto_input, retador_data, contrincante_data)
-
-    # ASSERT: Verificar el resultado
-    assert resultado.id_ganador == ID_RETADOR
-    assert resultado.rating_nuevo_retador > elo_inicial_retador
-    assert resultado.rating_nuevo_contrincante < elo_inicial_contrincante
-
-    # VERIFICACIÓN EXTRA: Actualizar y comprobar el estado en la sesión
-    retador_antes.puntos = resultado.rating_nuevo_retador
-    contrincante_antes.puntos = resultado.rating_nuevo_contrincante
+    resultado = EvaluationChallengeService.procesar_evaluacion_reto(reto, usuario_base_retador, usuario_base_contrincante)
     
-    db_session.commit()
+    assert resultado.id_ganador == 1
+    assert resultado.variacion_retador == 16  # K/2 para una victoria esperada
+    assert resultado.variacion_contrincante == -16
+    assert resultado.mensaje_personalizado == "¡Victoria sólida!"
+    print(f"Resultado: Retador gana {resultado.variacion_retador} puntos. Mensaje: '{resultado.mensaje_personalizado}'")
 
-    retador_actualizado = db_session.get(Usuario, ID_RETADOR)
-    assert retador_actualizado.puntos == resultado.rating_nuevo_retador
+def test_victoria_racha_on_fire(usuario_base_retador, usuario_base_contrincante):
+    """Prueba una victoria del retador con una racha de 4 victorias."""
+    print("\n--- Test: Racha 'On Fire' 🔥 ---")
+    desempeno_retador = DesempenoJugador(id_usuario=1, respuestas_correctas=9, tiempo_total_seg=100, racha_victorias=4)
+    desempeno_contrincante = DesempenoJugador(id_usuario=2, respuestas_correctas=5, tiempo_total_seg=150)
     
-    print(f"\nVictoria por aciertos (Integración): Retador {elo_inicial_retador} -> {retador_actualizado.puntos}")
+    reto = RetoParaEvaluar(retador=desempeno_retador, contrincante=desempeno_contrincante)
+    
+    resultado = EvaluationChallengeService.procesar_evaluacion_reto(reto, usuario_base_retador, usuario_base_contrincante)
+    
+    bonus_esperado = 4  # Bonus por racha de 4
+    assert resultado.id_ganador == 1
+    assert resultado.variacion_retador == 16 + bonus_esperado
+    assert resultado.variacion_contrincante == -16 # El perdedor no tiene bonus
+    assert resultado.mensaje_personalizado == "¡Dominante!"
+    print(f"Resultado: Retador gana {resultado.variacion_retador} puntos (16 base + {bonus_esperado} bonus). Mensaje: '{resultado.mensaje_personalizado}'")
+
+def test_victoria_remontada(usuario_base_retador, usuario_base_contrincante):
+    """Prueba una victoria del retador que rompe una racha de 5 derrotas."""
+    print("\n--- Test: Remontada 🚀 ---")
+    desempeno_retador = DesempenoJugador(id_usuario=1, respuestas_correctas=7, tiempo_total_seg=110, racha_derrotas=5)
+    desempeno_contrincante = DesempenoJugador(id_usuario=2, respuestas_correctas=6, tiempo_total_seg=115)
+    
+    reto = RetoParaEvaluar(retador=desempeno_retador, contrincante=desempeno_contrincante)
+    
+    resultado = EvaluationChallengeService.procesar_evaluacion_reto(reto, usuario_base_retador, usuario_base_contrincante)
+    
+    bonus_esperado = 5 + 5  # 5 base + 5 por racha de derrotas
+    assert resultado.id_ganador == 1
+    assert resultado.variacion_retador == 16 + bonus_esperado
+    assert resultado.variacion_contrincante == -16
+    assert resultado.mensaje_personalizado == "¡Buen trabajo!"
+    print(f"Resultado: Retador gana {resultado.variacion_retador} puntos (16 base + {bonus_esperado} bonus). Mensaje: '{resultado.mensaje_personalizado}'")
+
+def test_empate(usuario_base_retador, usuario_base_contrincante):
+    """Prueba un escenario de empate."""
+    print("\n--- Test: Empate ---")
+    desempeno_retador = DesempenoJugador(id_usuario=1, respuestas_correctas=8, tiempo_total_seg=120)
+    desempeno_contrincante = DesempenoJugador(id_usuario=2, respuestas_correctas=8, tiempo_total_seg=120)
+    
+    reto = RetoParaEvaluar(retador=desempeno_retador, contrincante=desempeno_contrincante)
+    
+    resultado = EvaluationChallengeService.procesar_evaluacion_reto(reto, usuario_base_retador, usuario_base_contrincante)
+    
+    assert resultado.id_ganador is None
+    assert resultado.variacion_retador == 0
+    assert resultado.variacion_contrincante == 0
+    assert resultado.mensaje_personalizado == "¡Empate reñido!"
+    print(f"Resultado: Empate. Sin cambios de puntos. Mensaje: '{resultado.mensaje_personalizado}'")

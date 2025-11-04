@@ -3,6 +3,10 @@
 import math
 # Se importa desde el nuevo archivo de esquemas
 from app.schemas.evaluation_challenges import RetoParaEvaluar, ResultadoEvaluacion, UsuarioData, RetoResultadoEnum
+from app.models.reto import Reto
+from app.models.juego import Juego # Suponiendo que existe un modelo Juego
+from sqlalchemy import or_
+from sqlalchemy.orm import Session
 
 class EvaluationChallengeService:
     """
@@ -38,42 +42,79 @@ class EvaluationChallengeService:
             else:
                 return RetoResultadoEnum.empate, None
 
+    @staticmethod
+    def _calcular_puntuacion_rendimiento(respuestas_correctas: int, tiempo_total_seg: int) -> float:
+        """
+        Calcula una puntuación de rendimiento simple.
+        Más correctas es mejor, menos tiempo es mejor.
+        """
+        if tiempo_total_seg == 0:
+            return respuestas_correctas * 10.0  # Evitar división por cero
+        
+        # Penalización por tiempo: más tiempo reduce la puntuación.
+        # El factor 100 es para que el tiempo no domine sobre las respuestas correctas.
+        puntuacion = (respuestas_correctas * 10) - (tiempo_total_seg / 100.0)
+        return max(0, puntuacion) # Asegurar que la puntuación no sea negativa
+
     @classmethod
-    def procesar_evaluacion_reto(cls, reto_input: RetoParaEvaluar, retador_data: UsuarioData, contrincante_data: UsuarioData) -> ResultadoEvaluacion:
+    def procesar_evaluacion_reto(
+        cls, 
+        reto_input: RetoParaEvaluar, 
+        retador_data: UsuarioData, 
+        contrincante_data: UsuarioData,
+        racha_victorias_retador: int,
+        racha_derrotas_retador: int,
+        racha_victorias_contrincante: int,
+        racha_derrotas_contrincante: int
+    ) -> ResultadoEvaluacion:
+        
         resultado, id_ganador = cls._determinar_resultado_reto(reto_input)
 
         cambio_rating_retador, cambio_rating_contrincante = cls._calcular_cambio_rating(
             retador_data.puntos, contrincante_data.puntos, resultado
         )
 
-        # --- INICIO DE LA NUEVA LÓGICA ---
-
-        # 1. Calcular bonus por rachas
         bonus_retador = 0
         bonus_contrincante = 0
 
         if resultado == RetoResultadoEnum.victoria_retador:
             bonus_retador = cls._calcular_bonus_racha(
-                reto_input.retador.racha_victorias, 
-                reto_input.retador.racha_derrotas
+                racha_victorias_retador, 
+                racha_derrotas_retador
             )
         elif resultado == RetoResultadoEnum.victoria_contrincante:
             bonus_contrincante = cls._calcular_bonus_racha(
-                reto_input.contrincante.racha_victorias,
-                reto_input.contrincante.racha_derrotas
+                racha_victorias_contrincante,
+                racha_derrotas_contrincante
             )
 
-        # Aplicar bonus al ganador
         cambio_rating_retador += bonus_retador
         cambio_rating_contrincante += bonus_contrincante
 
-        # 2. Generar mensaje personalizado
-        diff_correctas = abs(reto_input.retador.respuestas_correctas - reto_input.contrincante.respuestas_correctas)
-        diff_tiempo = abs(reto_input.retador.tiempo_total_seg - reto_input.contrincante.tiempo_total_seg)
-        
-        mensaje_personalizado = cls._generar_mensaje_personalizado(resultado, diff_correctas, diff_tiempo)
+        # Calcular puntuaciones de rendimiento para generar el mensaje
+        puntuacion_retador = cls._calcular_puntuacion_rendimiento(
+            reto_input.retador.respuestas_correctas, reto_input.retador.tiempo_total_seg
+        )
+        puntuacion_contrincante = cls._calcular_puntuacion_rendimiento(
+            reto_input.contrincante.respuestas_correctas, reto_input.contrincante.tiempo_total_seg
+        )
 
-        # --- FIN DE LA NUEVA LÓGICA ---
+        if resultado == RetoResultadoEnum.victoria_retador:
+            mensaje_personalizado = cls._generar_mensaje_personalizado(
+                puntuacion_ganador=puntuacion_retador,
+                puntuacion_perdedor=puntuacion_contrincante,
+                racha_victorias_ganador=racha_victorias_retador,
+                racha_derrotas_ganador=racha_derrotas_retador
+            )
+        elif resultado == RetoResultadoEnum.victoria_contrincante:
+            mensaje_personalizado = cls._generar_mensaje_personalizado(
+                puntuacion_ganador=puntuacion_contrincante,
+                puntuacion_perdedor=puntuacion_retador,
+                racha_victorias_ganador=racha_victorias_contrincante,
+                racha_derrotas_ganador=racha_derrotas_contrincante
+            )
+        else: # Empate
+            mensaje_personalizado = "¡Empate! 🤝"
 
         return ResultadoEvaluacion(
             id_ganador=id_ganador,
@@ -86,7 +127,7 @@ class EvaluationChallengeService:
             rating_nuevo_contrincante=contrincante_data.puntos + cambio_rating_contrincante,
             variacion_contrincante=cambio_rating_contrincante,
             mensaje=f"El resultado es: {resultado.value}",
-            mensaje_personalizado=mensaje_personalizado  # <-- Nuevo campo
+            mensaje_personalizado=mensaje_personalizado
         )
 
     @classmethod
@@ -101,37 +142,47 @@ class EvaluationChallengeService:
         else: # Empate
             score_a = 0.5
 
-        # --- ESTA ES LA PARTE CORREGIDA ---
-        # Llamamos a la función una sola vez y desempaquetamos la tupla
         nuevo_rating_retador, nuevo_rating_contrincante = cls._calculate_new_elo_ratings(
             rating_retador, rating_contrincante, score_a
         )
 
-        # Calculamos la diferencia (variación) para cada uno
         variacion_retador = nuevo_rating_retador - rating_retador
         variacion_contrincante = nuevo_rating_contrincante - rating_contrincante
 
         return variacion_retador, variacion_contrincante
     
     @classmethod
-    def _generar_mensaje_personalizado(cls, resultado: RetoResultadoEnum, diff_correctas: int, diff_tiempo: float) -> str:
+    def _generar_mensaje_personalizado(cls, puntuacion_ganador: float, puntuacion_perdedor: float, racha_victorias_ganador: int, racha_derrotas_ganador: int) -> str:
         """
-        Genera un mensaje de victoria basado en el rendimiento.
+        Genera un mensaje de victoria basado en el rendimiento, adaptado para niños.
+        El orden de las condiciones es de más específico a más general.
         """
-        if resultado == RetoResultadoEnum.empate:
-            return "¡Empate reñido!"
+        diferencia_puntuacion = abs(puntuacion_ganador - puntuacion_perdedor)
 
-        # Mensajes para el ganador
-        if diff_correctas > 3:
-            return "¡Dominante!"
-        if diff_tiempo > 60:
-            return "¡Victoria aplastante!"
-        if diff_correctas > 1:
-            return "¡Victoria sólida!"
-        if diff_tiempo < 10:
-            return "¡Final de infarto!"
+        # 1. Condición de remontada (muy específica)
+        if racha_victorias_ganador == 0 and racha_derrotas_ganador >= 3:
+            return "¡De vuelta al juego! 🚀"
+
+        # 2. Condiciones por diferencia de rendimiento
+        if diferencia_puntuacion <= 1.0: # Puntuaciones casi idénticas
+            return "¡Por un pelo! ¡Qué final tan reñido! 🤏"
         
-        return "¡Buen trabajo!"
+        if diferencia_puntuacion > 40:
+            return "¡Imparable! 🔥"
+        
+        # 3. Condiciones por puntuación alta del ganador
+        if puntuacion_ganador > 80:
+            return "¡Súper Estrella! 🌟"
+        
+        # 4. Otras condiciones de rendimiento
+        if diferencia_puntuacion < 5:
+            return "¡Casi iguales! 😮"
+
+        if puntuacion_ganador > 78.8 and diferencia_puntuacion > 19.9:
+            return "¡Qué rápido! ⚡️"
+        
+        # 5. Mensaje por defecto
+        return "¡Muy bien! 👍"
     
     @classmethod
     def _calcular_bonus_racha(cls, racha_victorias: int, racha_derrotas: int) -> int:
@@ -147,3 +198,43 @@ class EvaluationChallengeService:
             return 5 + min(racha_derrotas, 10)
             
         return 0
+
+    @classmethod
+    def _get_user_streak(cls, user_id: int, db: Session) -> tuple[int, int]:
+        """
+        Calcula la racha de victorias y derrotas de un usuario consultando la BD.
+        """
+        # Subconsulta para obtener los id_juego de los retos del usuario
+        retos_usuario_ids = db.query(Reto.id_juego).filter(
+            or_(Reto.id_usuario_retador == user_id, Reto.id_usuario_contrincante == user_id)
+        )
+
+        # Consulta principal uniendo Reto y Juego
+        ultimos_retos = db.query(Reto).join(Juego, Reto.id_juego == Juego.id_juego).filter(
+            Reto.id_juego.in_(retos_usuario_ids),
+            Reto.estado == 'finalizado' # Asumimos que este es el estado de un reto completado
+        ).order_by(Juego.fecha_creacion.desc()).limit(20).all()
+
+        if not ultimos_retos:
+            return 0, 0
+
+        racha_victorias = 0
+        racha_derrotas = 0
+        
+        # El primer reto de la lista es el más reciente
+        if ultimos_retos[0].ganador == user_id:
+            # El usuario ganó el último reto, contamos la racha de victorias
+            for reto in ultimos_retos:
+                if reto.ganador == user_id:
+                    racha_victorias += 1
+                else:
+                    break
+        elif ultimos_retos[0].ganador is not None:
+            # El usuario perdió, contamos la racha de derrotas
+            for reto in ultimos_retos:
+                if reto.ganador is not None and reto.ganador != user_id:
+                    racha_derrotas += 1
+                else:
+                    break
+        
+        return racha_victorias, racha_derrotas

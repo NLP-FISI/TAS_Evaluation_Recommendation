@@ -14,8 +14,7 @@ class DesempenoJugador(BaseModel):
     id_usuario: int = Field(..., description="ID único del jugador.")
     respuestas_correctas: int = Field(..., ge=0, description="Número de respuestas correctas.")
     tiempo_total_seg: float = Field(..., ge=0, description="Tiempo total en segundos que tardó en responder.")
-    racha_victorias: int = Field(0, ge=0, description="Racha de victorias consecutivas del jugador.")
-    racha_derrotas: int = Field(0, ge=0, description="Racha de derrotas consecutivas del jugador.")
+    # Los campos de racha se eliminan de aquí porque ahora se calculan en el servidor.
 
 class RetoParaEvaluar(BaseModel):
     retador: DesempenoJugador

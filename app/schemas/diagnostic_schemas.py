@@ -7,7 +7,10 @@ from pydantic import BaseModel, Field
 from typing import List
 
 # from app.schemas.diagnostic_schemas import DiagnosticStage1Request, DiagnosticStage1Response, Answer
-from app.models.diagnostic import Pregunta, Alternativa, ResultadoDiagnostico, Texto # Importamos Texto también
+from app.models.pregunta import Pregunta
+from app.models.alternativa import Alternativa
+from app.models.resultado_diagnostico import ResultadoDiagnostico
+from app.models.texto import Texto  # Importamos Texto también
 from app.models.usuario import Usuario  # Usuario está en usuario.py
 
 class Answer(BaseModel):

@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 
 # Modelos
 from app.models.usuario import Usuario
-from app.models.diagnostic import Alternativa, ResultadoDiagnostico
+from app.models.alternativa import Alternativa
+from app.models.resultado_diagnostico import ResultadoDiagnostico
 from app.models.desempenio import Desempenio
 from app.models.grado import Grado
 

@@ -13,8 +13,13 @@ from app.core.database import Base
 from .usuario import Usuario, usuario_preferencia_table
 from .grado import Grado
 from .tematica import Tematica
-from .diagnostic import Texto, Pregunta, Alternativa, ResultadoDiagnostico, TipoPregunta, Dificultad
+from .diagnostic import Pregunta, Alternativa, ResultadoDiagnostico, TipoPregunta
+from .texto import Texto
+from .dificultad import Dificultad
+from .juego import Juego
+from .resultado_juego import ResultadoJuego
 from .recommendation import ExperienceLevel
+from .resultado_texto import ResultadoTexto
 # Asumiendo que Desempenio está en su propio archivo
 try:
     from .desempenio import Desempenio
@@ -35,6 +40,9 @@ __all__ = [
     "ResultadoDiagnostico",
     "TipoPregunta",
     "Dificultad",
+    "ResultadoTexto",
+    "Juego",
+    "ResultadoJuego",
     # "TipoTexto",
     "ExperienceLevel",
     *(["Desempenio"] if Desempenio else [])

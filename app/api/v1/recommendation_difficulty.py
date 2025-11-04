@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
-from app.schemas.recommendation_schemas import RecommendationDifficultyRequest
-from app.services.recommendation_difficulty_service import actualizar_dificultad
-from app.schemas.recommendation_schemas import TextComplexityRequest, TextComplexityResponse
+from app.schemas.recommendation_schemas import LastTextRequest
+from app.services.recommendation_difficulty_service import actualizar_dificultad, obtener_promedio_dificultad_por_usuario_y_juego,obtener_resultado_general_juego
+from app.schemas.recommendation_schemas import TextComplexityRequest, TextComplexityResponse, UpdateDifficultyRequest
 from app.services.recommendation_difficulty_service import TextComplexityEvaluator
 from app.core.database import get_db
 from sqlalchemy.orm import Session
@@ -11,40 +11,58 @@ from app.models.usuario import Usuario
 router = APIRouter(prefix="/recommendation/difficulty",
                    tags=["Recommendation - Difficulty"])
 
-#get principal para obtener dificultad_acumulada
-@router.get("/difi/{id_user}")
-def read_difficulty(id_user: str):
-    return {f"dificultad obtenida de {id_user}"}
 
 #get para actualizar dificultad_acumulada
-
-@router.get("/update/{id}")
-def update_difficulty(id: int, resultado: int, db: Session = Depends(get_db)):
+@router.post("/update")
+def update_difficulty(request: UpdateDifficultyRequest, db: Session = Depends(get_db)):
     """
-    Actualiza la dificultad acumulada de un usuario basado en su ID y el resultado obtenido.
+    Actualiza la dificultad acumulada de un usuario basado en su ID, el juego y el resultado obtenido.
+    Usa como parámetro beta el promedio de dificultad de los textos asociados al usuario y al juego.
     """
     try:
-        usuario = db.query(Usuario).filter(Usuario.id_usuario == id).first()
+        id_usuario = request.id_usuario
+        id_juego = request.id_juego
+        cal_resultado = obtener_resultado_general_juego(db,id_usuario,id_juego)
+        resultado = cal_resultado["resultado_juego"]
+
+        # Verificar usuario
+        usuario = db.query(Usuario).filter(Usuario.id_usuario == id_usuario).first()
         if not usuario:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-        theta_actual = usuario.dificultad_acumulada or 1  # si es None, usar 1
+         # Obtener el promedio de dificultad (llamando la función de /ultimo_texto)
+        promedio_data = obtener_promedio_dificultad_por_usuario_y_juego(db, id_usuario, id_juego)
+
+        if "promedio_dificultad" not in promedio_data:
+            raise HTTPException(status_code=404, detail="No se encontró dificultad promedio para este usuario y juego")
+
+        promedio_dificultad = float(promedio_data["promedio_dificultad"])
+
+        # Calcular nueva dificultad
+        theta_actual = usuario.dificultad_acumulada or 1
 
         theta, racha, beta_next, p = actualizar_dificultad(
             theta=theta_actual,
             racha=2,
-            beta=3,
+            beta=promedio_dificultad,
             resultado=resultado
         )
 
+        # Guardar cambios
         usuario.dificultad_acumulada = round(theta, 3)
         db.commit()
 
+        # Respuesta
         return {
-            "id_user": id,
+            "id_usuario": id_usuario,
+            "id_juego": id_juego,
             "dificultad_acumulada_anterior": theta_actual,
             "dificultad_acumulada_actualizada": usuario.dificultad_acumulada,
-            "recomendacion_de_dificultad": beta_next
+            "promedio_dificultad_juego": promedio_dificultad,
+            "recomendacion_de_dificultad": beta_next,  # VALOR DE DIFICULTAD RECOMENDADA PARA EL SIGUIENTE JUEGO(1-5)
+            "correctas":cal_resultado["correctas"],
+            "incorrectas":cal_resultado["incorrectas"],
+            "resultado":cal_resultado["resultado_juego"]
         }
 
     except Exception as e:

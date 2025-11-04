@@ -40,3 +40,5 @@ class Usuario(Base):
         secondary=usuario_preferencia_table,
         back_populates="usuarios"
     )
+    resultado_texto = relationship("ResultadoTexto", back_populates="usuario")
+    resultado_juego = relationship("ResultadoJuego", back_populates="usuario")

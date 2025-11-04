@@ -15,8 +15,3 @@ class Juego(Base):
     activo = Column(Boolean, default=True)
     nombre_juego = Column(ARRAY(String(100)), nullable=False)
     id_dificultad = Column(Integer, ForeignKey("dificultad.id_dificultad"))
-
-    # Define las relaciones si es necesario, por ejemplo:
-    # dificultad = relationship("Dificultad")
-    # tipo_juego = relationship("TipoJuego")
-    # ... etc.

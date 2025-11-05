@@ -1,3 +1,4 @@
+# app/api/v1/text_recommendation.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.services.text_recommendation_service import TextRecommendationService
@@ -26,4 +27,4 @@ async def recommend_texts(id_usuario: int, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error interno no manejado en la ruta: {str(e)}"
-        )
+        ) from e

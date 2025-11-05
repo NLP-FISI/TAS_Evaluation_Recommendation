@@ -1,3 +1,4 @@
+# app/models/juego.py
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import relationship
@@ -17,3 +18,4 @@ class Juego(Base):
     id_dificultad = Column(Integer, ForeignKey("dificultad.id_dificultad"))
     
     resultados = relationship("ResultadoJuego", back_populates="juego")
+    resultado_texto = relationship("ResultadoTexto", back_populates="juego")

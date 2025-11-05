@@ -1,3 +1,4 @@
+# app/models/resultado_texto.py
 from sqlalchemy import Column, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -9,7 +10,6 @@ class ResultadoTexto(Base):
     id_texto = Column(Integer, ForeignKey("texto.id_texto"))
     id_juego = Column(Integer, ForeignKey("juego.id_juego"))
     id_usuario = Column(Integer, ForeignKey("usuario.id_usuario"))
-    #id_dificultad = Column(Integer)
     tiempo = Column(DateTime)
 
     texto = relationship("Texto", back_populates="resultado_texto")

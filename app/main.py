@@ -14,8 +14,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],        # Permite todos los orígenes
     allow_credentials=True,
-    # Permite todos los métodos (GET, POST, PUT, DELETE, etc.)
-    allow_methods=["*"],
+    allow_methods=["*"],        # Permite todos los métodos (GET, POST, PUT, DELETE, etc.)
     allow_headers=["*"],        # Permite cualquier cabecera
 )
 
@@ -26,3 +25,4 @@ app.include_router(api_router, prefix="/api/v1")
 @app.get("/")
 def read_root():
     return {"mensaje": "Bienvenido a la API"}
+# uvicorn app.main:app --reload

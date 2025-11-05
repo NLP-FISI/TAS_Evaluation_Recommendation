@@ -7,7 +7,7 @@ from . import profiling
 from . import evaluation_challenges
 from . import recommendation_tiers
 from . import recommendation_users
-from . import diagnostic
+#from . import diagnostic
 from . import recommendation_users
 from . import recommendation_difficulty
 from . import generation_recommendation
@@ -24,7 +24,7 @@ router.include_router(evaluation_performance.router)
 router.include_router(profiling.router)
 router.include_router(evaluation_challenges.router)
 router.include_router(evaluation_analytics_router)
-router.include_router(diagnostic.router)
+#router.include_router(diagnostic.router)
 router.include_router(recommendation_users.router) 
 router.include_router(recommendation_tiers.router)
 router.include_router(recommendation_users.router)

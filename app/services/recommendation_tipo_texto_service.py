@@ -21,7 +21,6 @@ def recomendar_tipo_texto(usuario: Usuario, db: Session):
     """
 
     # Ejemplo: el modelo usa una lógica simple para demostrar estructura.
-    # Puedes reemplazar esto con tu predicción real.
     if usuario.edad < 10:
         preferido = "Narrativo"
     elif usuario.puntos > 1000:

@@ -1,4 +1,12 @@
 import math
+import re
+from collections import Counter
+from app.schemas.recommendation_schemas import TextComplexityResponse
+from app.models.resultado_texto import ResultadoTexto
+from app.models.texto  import Texto
+from sqlalchemy import select, func
+from sqlalchemy.orm import Session
+from app.models.resultado_juego import ResultadoJuego
 
 def prob_correct(theta, beta):
     return 1.0 / (1.0 + math.exp(-(theta - beta)))
@@ -33,36 +41,30 @@ def actualizar_dificultad(theta, racha, beta, resultado, eta=0.6):
     
     return theta_nuevo, racha, beta_siguiente, p
 
-
-import re
-from collections import Counter
-from app.schemas.recommendation_schemas import TextComplexityResponse
-
-
 class TextComplexityEvaluator:
     """
     Simula una API de PNL para calcular la complejidad lingüística y temática de un texto.
     """
 
     def evaluate_text(self, text: str) -> TextComplexityResponse:
-        # 1️⃣ Limpieza del texto
+        # 1Limpieza del texto
         clean_text = re.sub(r'[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]', '', text)
         words = clean_text.split()
         sentences = re.split(r'[.!?]', text)
 
-        # 2️⃣ Métricas básicas
+        # Métricas básicas
         word_count = len(words)
         sentence_count = max(len([s for s in sentences if s.strip() != '']), 1)
         avg_sentence_length = word_count / sentence_count
 
-        # 3️⃣ Longitud promedio de palabras
+        # Longitud promedio de palabras
         avg_word_length = sum(len(w) for w in words) / max(word_count, 1)
 
-        # 4️⃣ Vocabulario único
+        # Vocabulario único
         unique_words = len(set(words))
         lexical_density = unique_words / max(word_count, 1)
 
-        # 5️⃣ Cálculo del índice de complejidad (tipo Flesch adaptado)
+        # Cálculo del índice de complejidad (tipo Flesch adaptado)
         complexity_score = (
             0.4 * avg_sentence_length +
             0.6 * avg_word_length +
@@ -72,7 +74,7 @@ class TextComplexityEvaluator:
         # Normalizamos entre 0–100
         normalized_score = min(max(100 - complexity_score * 5, 0), 100)
 
-        # 6️⃣ Clasificación cualitativa
+        # Clasificación cualitativa
         if normalized_score > 70:
             level = "Fácil"
         elif normalized_score > 40:
@@ -80,7 +82,7 @@ class TextComplexityEvaluator:
         else:
             level = "Difícil"
 
-        # 7️⃣ Generamos respuesta
+        # Generamos respuesta
         return TextComplexityResponse(
             score=round(normalized_score, 2),
             level=level,
@@ -92,3 +94,52 @@ class TextComplexityEvaluator:
                 "sentence_count": sentence_count
             }
         )
+
+# Calcula promedio de registro en la tabla resultado_texto, segun un usuario y un juego
+def obtener_promedio_dificultad_por_usuario_y_juego(db: Session, id_usuario: int, id_juego: int):
+    stmt = (
+        select(func.avg(Texto.id_dificultad).label("promedio_dificultad"))
+        .select_from(ResultadoTexto)
+        .join(Texto, ResultadoTexto.id_texto == Texto.id_texto)
+        .join(ResultadoJuego, ResultadoTexto.id_juego == ResultadoJuego.id_juego)
+        .where(
+            ResultadoTexto.id_usuario == id_usuario,
+            ResultadoTexto.id_juego == id_juego
+        )
+    )
+
+    resultado = db.execute(stmt).scalar()  # obtiene un solo valor (el promedio)
+
+    if resultado is not None:
+        return {"id_usuario": id_usuario, "id_juego": id_juego, "promedio_dificultad": round(resultado,2),"promedio_dificultad_entero":int(round(resultado))}
+    
+    return {"detail": "No se encontraron textos para este usuario y juego."}
+
+
+# Calcular si el resultado es positivo del juego (15 preguntas)
+def obtener_resultado_general_juego(db: Session, id_usuario: int, id_juego: int):
+    stmt = (
+        select(ResultadoJuego.correctas.label("correctas"),
+               ResultadoJuego.incorrectas.label("incorrectas"),
+               (ResultadoJuego.correctas - ResultadoJuego.incorrectas).label("resol"))
+        .select_from (ResultadoJuego)
+        .where(
+            ResultadoJuego.id_usuario == id_usuario,
+            ResultadoJuego.id_juego == id_juego
+        )
+    )
+    resultado = db.execute(stmt).first()
+    if resultado is None:
+        return {"detail": "No se encontraron resultados para este usuario y juego."}
+
+    # Calcular resultado del juego
+    resol = resultado.resol or -1
+    resultado_juego = 1 if resol > 0 else 0
+
+    return {
+        "id_usuario": id_usuario,
+        "id_juego": id_juego,
+        "correctas": resultado.correctas,
+        "incorrectas": resultado.incorrectas,
+        "resultado_juego": resultado_juego
+    }

@@ -23,9 +23,8 @@ class SolicitudEvaluacion(BaseModel):
 # Esquema para resultado final del cálculo de evaluación
 class ResultadoEvaluacion(BaseModel):
     id_usuario: int
-    puntaje: float = Field(..., description="Puntaje (0-100)")
-    nivel: str = Field(..., description="Nivel: básico / intermedio / avanzado")
-    exactitud: float = Field(..., description="Porcentaje de respuestas correctas (0..1)")
+    porcentaje_aciertos: float = Field(..., description="Porcentaje de respuestas correctas")
     promedio_tiempo_por_pregunta: float = Field(..., description="Promedio en segundos por pregunta")
     promedio_tiempo_por_lectura: float = Field(..., description="Promedio en segundos por lectura")
     textos_considerados: int = Field(..., description="Cantidad de textos usados en la evaluación")
+    categoria_desempenio: str = Field(..., description="Comparación del desempeño respecto al promedio general")

@@ -16,11 +16,13 @@ class Tematica(Base):
     usuarios = relationship(
         "Usuario",
         secondary="usuario_preferencia",  # referencia al nombre de tabla
-        back_populates="preferencias"
+        back_populates="preferencias",
+        overlaps="usuario_preferencias"
     )
 
     # Relación con la clase de asociación (opcional pero recomendable)
     usuario_preferencias = relationship(
         "UsuarioPreferencia",
-        back_populates="tematica"
+        back_populates="tematica",
+        overlaps="usuarios,preferencias"
     )

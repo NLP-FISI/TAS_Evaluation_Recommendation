@@ -27,15 +27,15 @@ class ProfilingService:
                 db.add(db_grade)
                 db.flush()
             
-            # 2. Verificar/crear las temáticas de interés
+            # 2. Verificar que las temáticas existen por ID
             db_preferences = []
-            for preference in data.preferences:
-                db_pref = db.query(Tematica).filter(Tematica.nombre_tematica == preference).first()
+            for tematica_id in data.preferences:
+                db_pref = db.query(Tematica).filter(Tematica.id_tematica == tematica_id).first()
                 if not db_pref:
-                    # Crear la temática si no existe
-                    db_pref = Tematica(nombre_tematica=preference)
-                    db.add(db_pref)
-                    db.flush()
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Temática con ID {tematica_id} no encontrada. Las temáticas deben existir previamente en la base de datos."
+                    )
                 db_preferences.append(db_pref)
             
             # 3. Buscar o crear el usuario por student_id (string)
@@ -44,7 +44,6 @@ class ProfilingService:
                 # Actualizar usuario existente
                 db_user.id_grado = db_grade.id_grado
                 db_user.preferencias = db_preferences
-                db_user.configuracion_avatar = data.avatar.dict() if data.avatar else {}
                 message = "Perfil de usuario actualizado exitosamente."
             else:
                 # Crear nuevo usuario
@@ -54,8 +53,7 @@ class ProfilingService:
                     apellido_usuario=f"Apellido_{data.student_id}",  # Agregar apellido requerido
                     contrasena=f"password_{data.student_id}",  # Contraseña por defecto requerida
                     email=f"user_{data.student_id}@example.com",
-                    id_grado=db_grade.id_grado,
-                    configuracion_avatar=data.avatar.dict() if data.avatar else {}
+                    id_grado=db_grade.id_grado
                 )
                 db_user.preferencias = db_preferences
                 db.add(db_user)

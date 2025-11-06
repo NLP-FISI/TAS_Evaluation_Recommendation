@@ -6,49 +6,73 @@ y los expone para facilitar su uso en otras partes de la aplicación.
 También asegura que todos los modelos usen la misma Base declarativa.
 """
 
-# Importar la Base compartida
+# --- Base compartida ---
 from app.core.database import Base
 
-# Importar modelos de los diferentes archivos
-from .usuario import Usuario, usuario_preferencia_table
+# --- Usuario y perfil ---
+from .usuario import Usuario
 from .grado import Grado
 from .tematica import Tematica
-from .diagnostic import Pregunta, Alternativa, ResultadoDiagnostico, TipoPregunta
-from .texto import Texto
-from .dificultad import Dificultad
-from .juego import Juego
-from .resultado_juego import ResultadoJuego
-from .recommendation import ExperienceLevel
-from .resultado_texto import ResultadoTexto
-# Asumiendo que Desempenio está en su propio archivo
-try:
-    from .desempenio import Desempenio
-except ImportError:
-    # Manejar caso si desempenio.py no existe aún o tiene otro nombre
-    Desempenio = None
+from .desempenio import Desempenio
 
-# Lista __all__ para controlar 'from app.models import *'
-# Incluye todos los nombres de las CLASES de modelos (y Base)
+# --- Catálogos ---
+from .tipo_texto import TipoTexto
+from .tipo_pregunta import TipoPregunta
+from .dificultad import Dificultad
+
+# --- Contenido educativo ---
+from .texto import Texto
+from .pregunta import Pregunta
+from .alternativa import Alternativa
+
+# --- Diagnóstico ---
+from .resultado_diagnostico import ResultadoDiagnostico
+
+# --- Asociación Usuario–Temática ---
+# (Solo si estás usando el modelo ORM completo)
+from .usuario_preferencia import UsuarioPreferencia
+
+# --- Otros modelos opcionales ---
+# Si existen en tu estructura, se pueden importar sin romper compatibilidad
+try:
+    from .resultado_texto import ResultadoTexto
+except ImportError:
+    ResultadoTexto = None
+
+try:
+    from .juego import Juego
+    from .resultado_juego import ResultadoJuego
+except ImportError:
+    Juego = None
+    ResultadoJuego = None
+
+# --- Recomendación / IA ---
+from .recommendation import ExperienceLevel
+
+
+# --- Exportación controlada ---
 __all__ = [
     "Base",
+    # Usuario y perfil
     "Usuario",
     "Grado",
     "Tematica",
+    "Desempenio",
+    # Catálogos
+    "TipoTexto",
+    "TipoPregunta",
+    "Dificultad",
+    # Contenido educativo
     "Texto",
     "Pregunta",
     "Alternativa",
+    # Diagnóstico
     "ResultadoDiagnostico",
-    "TipoPregunta",
-    "Dificultad",
+    # Asociación Usuario–Temática
+    "UsuarioPreferencia",
+    # Otros
     "ResultadoTexto",
     "Juego",
     "ResultadoJuego",
-    # "TipoTexto",
     "ExperienceLevel",
-    *(["Desempenio"] if Desempenio else [])
-    # Nota: No solemos incluir las tablas de unión (como usuario_preferencia_table) en __all__
 ]
-
-# Opcional: Verificar si Desempenio se pudo importar
-if Desempenio is None:
-    print("Advertencia: No se pudo importar el modelo Desempenio desde app.models.desempenio")

@@ -62,3 +62,11 @@ class Texto(BaseModel):
 class RecommendationGenerationResponse(BaseModel):
     textos_obtenidos: int
     textos: List[Texto]
+
+class LastTextRequest(BaseModel):
+    id_usuario: int
+    id_juego: int
+
+class UpdateDifficultyRequest(BaseModel):
+    id_usuario: int
+    id_juego: int

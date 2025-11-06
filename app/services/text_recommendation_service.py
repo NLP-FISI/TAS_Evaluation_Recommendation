@@ -1,115 +1,77 @@
-# app/services/text_recommendation_service.py
-#Variables de entorno
-import os
-from dotenv import load_dotenv
+import httpx
+from app.models.usuario import Usuario
 
-env_file = ".env.dev" if os.getenv("ENV") == "development" else ".env"
+from app.services.recommendation_tipo_texto_service import recomendar_tipo_texto
 
-load_dotenv(dotenv_path=env_file)
+API_GENERATION = "https://tas-content-generation.onrender.com"
 
-import psycopg2
-from psycopg2.extras import RealDictCursor
-# import requests  # (Descomenta cuando se use la ruta externa)
-
-
-DB_CONFIG = {
-    "host": os.getenv("DB_HOST"),
-    "port": os.getenv("DB_PORT"),
-    "database": os.getenv("DB_NAME"),
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD")
-}
 
 class TextRecommendationService:
+    """
+    A service class for handling text recommendations based on user preferences and interactions.
+    This class provides functionality to generate personalized text recommendations by integrating
+    different recommendation systems and communicating with an external content generation API.
+    Methods:
+        get_recommendations(id_usuario: int, db) -> dict:
+            Retrieves personalized text recommendations for a specific user by:
+            - Fetching user data from the database
+            - Determining recommended text types based on user profile
+            - Obtaining topic preferences
+            - Making requests to external content generation API
+    Returns:
+        dict: Response from the content generation API containing recommended texts
+              or an error message if the process fails
+    Raises:
+        httpx.RequestError: If there's an error connecting to the external microservice
+        Exception: For unexpected errors during the recommendation process
+    """
+
     @staticmethod
-    async def get_recommendations(id_usuario: int):
-        conn = None
+    async def get_recommendations(id_usuario: int, db):
+        """
+        Integra los recomendadores y obtiene los textos generados
+        desde la API externa /contenido/obtener
+        """
+
+        # Obtener datos del usuario
+        usuario = db.query(Usuario).filter(
+            Usuario.id_usuario == id_usuario).first()
+        if not usuario:
+            return {"mensaje": "Usuario no encontrado."}
+
+        # Obtener recomendaciones de tipo de texto
+        tipo_texto_rec = recomendar_tipo_texto(usuario, db)
+
+        # Obtener un id de temática del usuario
+        if usuario.preferencias:
+            id_tematica = usuario.preferencias[0].id_tematica
+        else:
+            id_tematica = 1  # default
+
+        id_tipo_texto = tipo_texto_rec["id_tipo_texto"]
+        id_dificultad = 1  # default
+
+        # Construir payload para la API externa
+        payload = {
+            "id_usuario": id_usuario,
+            "id_tipo_texto": id_tipo_texto,
+            "id_tematica": id_tematica,
+            "id_dificultad": id_dificultad
+        }
+
+        # Hacer request al microservicio de generación
+        url_externa = f"{API_GENERATION}/contenido/obtener"
+
         try:
-            conn = psycopg2.connect(**DB_CONFIG)
-            cur = conn.cursor(cursor_factory=RealDictCursor)
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(url_externa, params=payload)
 
-            # 1️⃣ OBTENER DATOS DEL USUARIO (grado, temática, desempeño)
-            # en d.promedio se puso provisionalmente exactitud
-            cur.execute("""
-                SELECT 
-                    u.id_usuario,
-                    u.id_grado,
-                    g.nombre_grado,
-                    u.id_tematica,
-                    te.nombre_tematica,
-                    COALESCE(d.exactitud, 0) AS puntaje_promedio,
-                    COALESCE(d.nivel, 'básico') AS nivel_actual
-                FROM usuario AS u
-                JOIN grado AS g ON u.id_grado = g.id_grado
-                LEFT JOIN tematica AS te ON u.id_tematica = te.id_tematica
-                LEFT JOIN desempenio AS d ON u.id_usuario = d.id_usuario
-                WHERE u.id_usuario = %s;
-            """, (id_usuario,))
-            user_data = cur.fetchone()
+            if response.status_code != 200:
+                raise Exception(f"Error al obtener textos: {response.text}")
 
-            if not user_data:
-                return {"mensaje": "Usuario no encontrado."}
+            return response.json()
 
-            # 2️⃣ OBTENER TEXTOS RELEVANTES SEGÚN TEMÁTICA Y NIVEL
-            cur.execute("""
-                SELECT 
-                    t.id_texto,
-                    t.titulo,
-                    t.contenido,
-                    t.id_tematica,
-                    te.nombre_tematica,
-                    t.id_tipo_texto,
-                    tt.nombre_tipo_texto,
-                    t.id_dificultad
-                FROM texto t
-                JOIN tematica te ON t.id_tematica = te.id_tematica
-                JOIN tipo_texto tt ON t.id_tipo_texto = tt.id_tipo_texto
-                WHERE t.id_tematica = %s
-                ORDER BY 
-                    CASE 
-                        WHEN t.id_dificultad = %s THEN 1
-                        WHEN t.id_dificultad = 'medio' THEN 2
-                        ELSE 3
-                    END;
-            """, (user_data["id_tematica"], user_data["nivel_actual"]))
-
-            textos = cur.fetchall()
-            if not textos:
-                return {"mensaje": "No se encontraron textos para la temática del usuario."}
-
-            # 3️⃣ (FUTURO) ENVIAR DATOS AL MÓDULO EXTERNO PARA GENERAR TEXTO Y PREGUNTAS
-            """
-            # Ejemplo de integración:
-            external_api_url = "http://external-content-generator/api/v1/generate-text"
-            payload = {
-                "usuario_id": id_usuario,
-                "nivel": user_data["nivel_actual"],
-                "tematica": user_data["nombre_tematica"],
-                "grado": user_data["nombre_grado"]
-            }
-            response = requests.post(external_api_url, json=payload)
-            if response.status_code == 200:
-                generated_content = response.json()
-            else:
-                generated_content = {"error": "No se pudo generar el contenido externo"}
-            """
-
-            return {
-                "usuario": {
-                    "id": user_data["id_usuario"],
-                    "grado": user_data["nombre_grado"],
-                    "tematica": user_data["nombre_tematica"],
-                    "nivel_actual": user_data["nivel_actual"],
-                    "puntaje_promedio": user_data["puntaje_promedio"]
-                },
-                "total_textos": len(textos),
-                "textos_recomendados": textos,
-                # "contenido_generado": generated_content  # (cuando se conecte el servicio externo)
-            }
-
+        except httpx.RequestError as e:
+            return {"error": f"Error de conexión con el microservicio: {str(e)}"}
         except Exception as e:
-            return {"error": str(e)}
-
-        finally:
-            if conn:
-                conn.close()
+            return {"error": f"Error inesperado: {str(e)}"}

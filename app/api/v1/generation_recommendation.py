@@ -7,9 +7,6 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.usuario import Usuario
 
-env_file = ".env.dev" if os.getenv("ENV") == "development" else ".env"
-load_dotenv(dotenv_path=env_file)
-
 
 router = APIRouter(
     prefix="/recommendation-generation",
@@ -22,7 +19,7 @@ async def obtener_textos(data: RecommendationGenerationRequest):
     Recibe los 4 IDs, hace una llamada GET al endpoint externo
     /contenido/obtener y devuelve la respuesta en el formato BaseModel.
     """
-    url_externa = f"{os.getenv("API_GENERATION")}/contenido/obtener"
+    url_externa = "https://tas-content-generation.onrender.com"
 
     params = {
         "id_usuario": data.id_usuario,
@@ -64,11 +61,16 @@ async def obtener_textos(data: RecommendationGenerationRequest, db: Session = De
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
     #Obtener el valor actual de dificultad acumulada
-    dificultad_acumulada = usuario.dificultad_acumulada or 1
+    # dificultad_acumulada = usuario.dificultad_acumulada or 1
+    try:
+        dificultad_acumulada = usuario.dificultad_acumulada if usuario.dificultad_acumulada is not None else 1
+    except AttributeError:
+        dificultad_acumulada = 1
     id_dificultad = round(dificultad_acumulada)
 
     #Construir la URL externa y parámetros
-    url_externa = f"{os.getenv('API_GENERATION')}/contenido/obtener"
+    # url_externa = f"{os.getenv('API_GENERATION')}/contenido/obtener"
+    url_externa = "https://tas-content-generation.onrender.com"
 
     params = {
         "id_usuario": data.id_usuario,

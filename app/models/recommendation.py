@@ -1,5 +1,5 @@
 # app/models/recommendation.py
-from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey, Text, String
+from sqlalchemy import Column, Integer, Float, DateTime, Text, String
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 from datetime import datetime

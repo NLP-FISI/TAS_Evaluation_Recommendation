@@ -1,8 +1,8 @@
 """Modelo para niveles de dificultad"""
+
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from app.core.database import Base
-
 
 class Dificultad(Base):
     __tablename__ = 'dificultad'

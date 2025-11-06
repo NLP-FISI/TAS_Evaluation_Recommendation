@@ -1,3 +1,4 @@
+# app/models/usuario.py
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, JSON, Float
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -24,10 +25,15 @@ class Usuario(Base):
     # Relaciones
     grado = relationship("Grado", back_populates="usuarios")
     desempenio = relationship("Desempenio", back_populates="usuario", uselist=False)
-    
-    # Relación muchos a muchos con la tabla Tematica a través de la tabla de unión
+
+    # Relaciones con Tematica y la tabla de asociación
     preferencias = relationship(
         "Tematica",
         secondary="usuario_preferencia",
         back_populates="usuarios"
+    )
+
+    usuario_preferencias = relationship(
+        "UsuarioPreferencia",
+        back_populates="usuario"
     )

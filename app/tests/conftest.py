@@ -13,7 +13,7 @@ load_dotenv(dotenv_path=".env.test")
 
 # Re-importar settings DESPUÉS de cargar el .env.test
 from app.core.config import settings
-from app.models import evaluation_challenges # Asegúrate de que los modelos se carguen
+from app.models import usuario # Asegúrate de que los modelos se carguen
 
 SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL
 
@@ -22,21 +22,16 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 
 # Crear todas las tablas si no existen (útil para la primera ejecución)
 # En un entorno CI/CD real, esto se manejaría de forma más robusta.
-evaluation_challenges.Base.metadata.create_all(bind=engine)
+usuario.Base.metadata.create_all(bind=engine)
 
 
 @pytest.fixture(scope="function")
 def db_session():
     """
-    Fixture de Pytest para proporcionar una sesión de base de datos a las pruebas.
-    
-    ESTA ES LA MAGIA:
     1. Inicia una conexión y una transacción.
     2. "yield" (entrega) la sesión a la función de prueba que la solicita.
     3. Cuando la prueba termina, el código continúa y ejecuta el "rollback".
-    
-    Esto significa que cualquier cambio en la BD (INSERT, UPDATE, DELETE) que
-    haga la prueba, será deshecho. La base de datos quedará intacta.
+
     """
     connection = engine.connect()
     transaction = connection.begin()

@@ -5,7 +5,7 @@ from typing import List, Set
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-# Modelos
+# --- Modelos ---
 from app.models.usuario import Usuario
 from app.models.alternativa import Alternativa
 from app.models.resultado_diagnostico import ResultadoDiagnostico

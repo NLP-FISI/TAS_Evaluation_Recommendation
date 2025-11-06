@@ -56,7 +56,8 @@ class TextRecommendationService:
             "id_usuario": id_usuario,
             "id_tipo_texto": id_tipo_texto,
             "id_tematica": id_tematica,
-            "id_dificultad": id_dificultad
+            "id_dificultad": id_dificultad,
+            "cantidad": 3  # Número de textos a generar
         }
 
         # Hacer request al microservicio de generación

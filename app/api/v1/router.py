@@ -1,7 +1,7 @@
 # This module aggregates all API routes for version 1 of the API.
 from fastapi import APIRouter
 from . import evaluation_performance
-from . import evaluation_input
+from . import recommendation_input
 from . import recommendation_difficulty
 from . import text_recommendation
 from . import profiling
@@ -19,7 +19,7 @@ from .evaluation_analytics import router as evaluation_analytics_router
 
 # --- Creación de enrutadores ---
 router = APIRouter()
-router.include_router(evaluation_input.router)
+router.include_router(recommendation_input.router)
 router.include_router(text_recommendation.router)
 router.include_router(evaluation_performance.router)
 router.include_router(profiling.router)

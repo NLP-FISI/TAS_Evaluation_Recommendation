@@ -19,9 +19,7 @@ class Usuario(Base):
     puntos = Column(Integer, default=0, nullable=True)
     configuracion_avatar = Column(JSON, nullable=True)
     student_id = Column(String(100), unique=True, index=True, nullable=True)
-    id_tematica = Column(Integer, nullable=True)
     dificultad_acumulada = Column(Float, nullable=True)
-    id_dificultad = Column(Integer, nullable=True)
 
     # Relaciones
     grado = relationship("Grado", back_populates="usuarios")

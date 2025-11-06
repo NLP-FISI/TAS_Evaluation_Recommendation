@@ -105,3 +105,43 @@ class DiagnosticService:
 
             if not chosen_alternative:
                 raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Alternativa {answer.alternative_id} no encontrada para la pregunta {answer.question_id}."
+                )
+
+            is_correct = chosen_alternative.correcto
+            if is_correct:
+                correct_answers_count += 1
+
+            diagnostic_result = ResultadoDiagnostico(
+                id_usuario=db_user.id_usuario,
+                id_pregunta=answer.question_id,
+                id_alternativa_elegida=answer.alternative_id,
+                es_correcta=is_correct
+            )
+            results_to_save.append(diagnostic_result)
+
+        # 4. Guardar resultados
+        try:
+            db.add_all(results_to_save)
+            db.commit()
+            for result in results_to_save:
+                db.refresh(result)
+        except Exception as e:
+            db.rollback()
+            print(f"Error al guardar resultados de diagnóstico: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Ocurrió un error al guardar los resultados de la evaluación."
+            )
+
+        # 5. Determinar la decisión
+        decision = "CONTINUAR" if correct_answers_count == 2 else "FINALIZAR"
+
+        # 6. Retornar la respuesta
+        return DiagnosticStage1Response(
+            student_id=data.student_id,
+            decision=decision,
+            correct_answers_count=correct_answers_count,
+            message=f"Diagnóstico Etapa 1 completado. Respuestas correctas: {correct_answers_count} de 2."
+        )

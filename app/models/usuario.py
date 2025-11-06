@@ -25,6 +25,8 @@ class Usuario(Base):
     # Relaciones
     grado = relationship("Grado", back_populates="usuarios")
     desempenio = relationship("Desempenio", back_populates="usuario", uselist=False)
+    resultado_texto = relationship("ResultadoTexto", back_populates="usuario")
+    resultado_juego = relationship("ResultadoJuego", back_populates="usuario")
 
     # Relaciones con Tematica y la tabla de asociación
     preferencias = relationship(
@@ -35,5 +37,6 @@ class Usuario(Base):
 
     usuario_preferencias = relationship(
         "UsuarioPreferencia",
-        back_populates="usuario"
+        back_populates="usuario",
+        overlaps="preferencias"
     )

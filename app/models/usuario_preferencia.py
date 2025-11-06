@@ -16,8 +16,16 @@ class UsuarioPreferencia(Base):
     tematica_id = Column(Integer, ForeignKey("tematica.id_tematica"), primary_key=True)
 
     # Relaciones hacia los modelos principales
-    usuario = relationship("Usuario", back_populates="usuario_preferencias")
-    tematica = relationship("Tematica", back_populates="usuario_preferencias")
+    usuario = relationship(
+        "Usuario", 
+        back_populates="usuario_preferencias",
+        overlaps="preferencias,usuarios"
+    )
+    tematica = relationship(
+        "Tematica", 
+        back_populates="usuario_preferencias",
+        overlaps="preferencias,usuarios"
+    )
 
     def __repr__(self):
         return f"<UsuarioPreferencia(usuario_id={self.usuario_id}, tematica_id={self.tematica_id})>"

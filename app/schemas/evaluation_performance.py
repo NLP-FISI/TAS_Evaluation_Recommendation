@@ -12,11 +12,11 @@ class RegistroEvaluacionBase(BaseModel):
     class Config:
         orm_mode = True  # Permite compatibilidad con SQLAlchemy ORM
 
-# Esquema para salida (cuando devuelves datos desde la BD o API)
+# Esquema para salida (cuando se devuelve datos desde la BD o API)
 class RegistroEvaluacionSalida(RegistroEvaluacionBase):
     id_resultado_juego: int = Field(..., description="ID único del resultado del juego")
 
-# Esquema para solicitud (cuando recibes datos de entrada)
+# Esquema para solicitud (cuando se recibe datos de entrada)
 class SolicitudEvaluacion(BaseModel):
     id_usuario: int = Field(..., description="ID del estudiante a evaluar")
 

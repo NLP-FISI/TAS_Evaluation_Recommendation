@@ -31,7 +31,6 @@ def obtener_datos_bd(db, id_usuario: str) -> List[RegistroEvaluacionSalida]:
         for r in rows
     ]
 
-
 # Calcular métricas del usuario
 def calcular_metricas(records: List[RegistroEvaluacionSalida]) -> Dict[str, Any]:
     total_texts = len(records)
@@ -96,7 +95,6 @@ def guardar_evaluacion(db, result: Dict[str, Any]):
 
     db.execute(sql, result)
     db.commit()
-
 
 def calcular_desempenio(id_usuario: str) -> Optional[ResultadoEvaluacion]:
     from app.core.database import SessionLocal

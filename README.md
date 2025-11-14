@@ -54,6 +54,7 @@ pip install -r requirements.txt
 
 # Correr servidor local
 uvicorn app.main:app --reload
+$env:ENV="development"; uvicorn app.main:app --reload
 
 # Verifica en el navegador:
 👉 http://127.0.0.1:8000/docs (Swagger UI)

@@ -19,6 +19,10 @@ class ProfilingService:
         """
         
         try:
+            print(f"[DEBUG] Iniciando creación de perfil para student_id: {data.student_id}")
+            print(f"[DEBUG] Grade level: {data.grade_level}")
+            print(f"[DEBUG] Preferences: {data.preferences}")
+            
             # 1. Verificar que el grado escolar existe (o crearlo si no existe)
             db_grade = db.query(Grado).filter(Grado.id_grado == data.grade_level).first()
             if not db_grade:
@@ -26,27 +30,30 @@ class ProfilingService:
                 db_grade = Grado(id_grado=data.grade_level, nombre_grado=f"Grado {data.grade_level}")
                 db.add(db_grade)
                 db.flush()
+            print(f"[DEBUG] Grado encontrado/creado: {db_grade.id_grado}")
             
-            # 2. Verificar/crear las temáticas de interés
+            # 2. Verificar que las temáticas existen por ID
             db_preferences = []
-            for preference in data.preferences:
-                db_pref = db.query(Tematica).filter(Tematica.nombre_tematica == preference).first()
+            for tematica_id in data.preferences:
+                db_pref = db.query(Tematica).filter(Tematica.id_tematica == tematica_id).first()
                 if not db_pref:
-                    # Crear la temática si no existe
-                    db_pref = Tematica(nombre_tematica=preference)
-                    db.add(db_pref)
-                    db.flush()
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Temática con ID {tematica_id} no encontrada. Las temáticas deben existir previamente en la base de datos."
+                    )
                 db_preferences.append(db_pref)
+            print(f"[DEBUG] Temáticas encontradas: {len(db_preferences)}")
             
             # 3. Buscar o crear el usuario por student_id (string)
             db_user = db.query(Usuario).filter(Usuario.student_id == data.student_id).first()
             if db_user:
+                print(f"[DEBUG] Usuario existente encontrado: {db_user.id_usuario}")
                 # Actualizar usuario existente
                 db_user.id_grado = db_grade.id_grado
                 db_user.preferencias = db_preferences
-                db_user.configuracion_avatar = data.avatar.dict() if data.avatar else {}
                 message = "Perfil de usuario actualizado exitosamente."
             else:
+                print(f"[DEBUG] Creando nuevo usuario")
                 # Crear nuevo usuario
                 db_user = Usuario(
                     student_id=data.student_id,  # Usar student_id como string
@@ -54,24 +61,33 @@ class ProfilingService:
                     apellido_usuario=f"Apellido_{data.student_id}",  # Agregar apellido requerido
                     contrasena=f"password_{data.student_id}",  # Contraseña por defecto requerida
                     email=f"user_{data.student_id}@example.com",
-                    id_grado=db_grade.id_grado,
-                    configuracion_avatar=data.avatar.dict() if data.avatar else {}
+                    id_grado=db_grade.id_grado
                 )
                 db_user.preferencias = db_preferences
                 db.add(db_user)
                 message = "Perfil de usuario creado exitosamente."
             
+            print(f"[DEBUG] A punto de hacer commit...")
             # 4. Confirmar cambios
             db.commit()
+            print(f"[DEBUG] Commit exitoso")
             db.refresh(db_user)
+            print(f"[DEBUG] Refresh exitoso")
             
-            return ProfilingResponse(
+            response = ProfilingResponse(
                 student_id=data.student_id,
                 profile_created=True,
                 message=message
             )
+            print(f"[DEBUG] Response creado: {response}")
+            return response
             
+        except HTTPException:
+            raise
         except Exception as e:
+            print(f"[ERROR] Exception capturada: {type(e).__name__}: {str(e)}")
+            import traceback
+            traceback.print_exc()
             db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

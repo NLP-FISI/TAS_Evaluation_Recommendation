@@ -8,7 +8,8 @@ from app.core.database import get_db
 from app.services.diagnostic_service import DiagnosticService
 from app.schemas.diagnostic_schemas import (
     DiagnosticStage1Request, DiagnosticStage1Response,
-    DiagnosticStage2Request, DiagnosticStage2Response
+    DiagnosticStage2Request, DiagnosticStage2Response,
+    LevelAssignmentRequest, LevelAssignmentResponse  # Importar nuevos esquemas
 )
 
 # Crear el router para las rutas de diagnóstico
@@ -28,17 +29,12 @@ async def process_diagnostic_stage1(
     devuelve la decisión ('CONTINUAR' o 'FINALIZAR').
     """
     try:
+        # Pasamos la sesión de BD al servicio
         return DiagnosticService.process_stage1(data, db)
     except HTTPException as http_exc:
-        # Re-lanzar excepciones HTTP tal cual
-        raise http_exc
+        raise http_exc # Re-lanzar excepciones conocidas
     except Exception as e:
-        # Capturar otros errores inesperados
-        print(f"Error inesperado en /diagnostic/stage1: {e}") # Log del error
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ocurrió un error interno al procesar la Etapa 1: {e}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error en Etapa 1: {str(e)}")
 
 
 @router.post("/stage2", response_model=DiagnosticStage2Response)
@@ -49,41 +45,30 @@ async def process_diagnostic_stage2(
     """
     Endpoint para procesar las respuestas de la Etapa 2 del diagnóstico (F-02.B).
     Recibe las 3 respuestas, las evalúa y guarda los resultados.
-    La asignación final de nivel (Intermedio/Avanzado) se hará en F-03.
     """
     try:
+        # Pasamos la sesión de BD al servicio
         return DiagnosticService.process_stage2(data, db)
     except HTTPException as http_exc:
-        # Re-lanzar excepciones HTTP tal cual
-        raise http_exc
+        raise http_exc # Re-lanzar excepciones conocidas
     except Exception as e:
-        # Capturar otros errores inesperados
-        print(f"Error inesperado en /diagnostic/stage2: {e}") # Log del error
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ocurrió un error interno al procesar la Etapa 2: {e}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error en Etapa 2: {str(e)}")
 
-# --- Endpoint Opcional para Obtener Contenido ---
-# @router.get("/stage1/content")
-# async def get_stage1_content(db: Session = Depends(get_db)):
-#     """
-#     (Opcional) Endpoint para que el frontend obtenga el texto y las preguntas
-#     de la Etapa 1. Debería buscar en la BD el texto y preguntas con IDs fijos.
-#     """
-#     # Lógica para buscar Texto con ID 1, Preguntas 1 y 2, y sus Alternativas
-#     # ...
-#     # Devolverlos en un formato JSON adecuado para el frontend
-#     pass
-
-# @router.get("/stage2/content")
-# async def get_stage2_content(db: Session = Depends(get_db)):
-#     """
-#     (Opcional) Endpoint para que el frontend obtenga el texto y las preguntas
-#     de la Etapa 2. Debería buscar en la BD el texto y preguntas con IDs fijos.
-#     """
-#     # Lógica para buscar Texto con ID 2, Preguntas 3, 4 y 5, y sus Alternativas
-#     # ...
-#     # Devolverlos en un formato JSON adecuado para el frontend
-#     pass
-
+# --- ¡NUEVO ENDPOINT PARA F-03! ---
+@router.post("/assign-level", response_model=LevelAssignmentResponse)
+async def assign_initial_level(
+    data: LevelAssignmentRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Endpoint para calcular y asignar el nivel de competencia inicial (F-03).
+    Lee los resultados guardados de Etapa 1 y 2, y guarda el nivel final
+    en el registro de Desempeño del usuario.
+    """
+    try:
+        # Pasamos la sesión de BD al servicio
+        return DiagnosticService.assign_initial_level(data, db)
+    except HTTPException as http_exc:
+        raise http_exc # Re-lanzar excepciones conocidas
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error interno al asignar nivel: {str(e)}")

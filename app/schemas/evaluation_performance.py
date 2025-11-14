@@ -27,4 +27,4 @@ class ResultadoEvaluacion(BaseModel):
     promedio_tiempo_por_pregunta: float = Field(..., description="Promedio en segundos por pregunta")
     promedio_tiempo_por_lectura: float = Field(..., description="Promedio en segundos por lectura")
     textos_considerados: int = Field(..., description="Cantidad de textos usados en la evaluación")
-    categoria_desempenio: str = Field(..., description="Comparación del desempeño respecto al promedio general")
+    nivel: str = Field(..., description="Comparación del desempeño respecto al promedio general")

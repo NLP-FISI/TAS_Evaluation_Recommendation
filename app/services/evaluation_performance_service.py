@@ -68,14 +68,14 @@ def clasificar_desempenio(db, exactitud: float) -> str:
     if promedio_exactitud <= 0:
         return "Sin datos para comparación"
 
-    relativo = (float(exactitud) / float(promedio_exactitud)) * 100
+    exactitud_relativo = (float(exactitud) / float(promedio_exactitud)) * 100
 
-    if exactitud >= 0.8 and relativo >= 110:
+    if exactitud >= 0.8 and exactitud_relativo >= 80:
         return "Excelente desempeño"
-    elif exactitud >= 0.6:
+    elif exactitud >= 0.6 and exactitud_relativo >= 60:
         return "Desempeño adecuado"
     else:
-        return "Desempeño en mejora"
+        return "Por mejorar"
 
 # Guardar evaluación en la BD
 def guardar_evaluacion(db, result: Dict[str, Any]):
@@ -83,10 +83,11 @@ def guardar_evaluacion(db, result: Dict[str, Any]):
     INSERT INTO desempenio
         (id_usuario, puntaje, nivel, exactitud, promedio_tiempo_por_pregunta,
          promedio_tiempo_por_lectura, textos_considerados)
-    VALUES (:id_usuario, 0, 'Básico', :exactitud, :promedio_tiempo_por_pregunta,
+    VALUES (:id_usuario, 0, :nivel, :exactitud, :promedio_tiempo_por_pregunta,
             :promedio_tiempo_por_lectura, :textos_considerados)
     ON CONFLICT (id_usuario) DO UPDATE
     SET
+        nivel = EXCLUDED.nivel,
         exactitud = EXCLUDED.exactitud,
         promedio_tiempo_por_pregunta = EXCLUDED.promedio_tiempo_por_pregunta,
         promedio_tiempo_por_lectura = EXCLUDED.promedio_tiempo_por_lectura,
@@ -108,8 +109,11 @@ def calcular_desempenio(id_usuario: str) -> Optional[ResultadoEvaluacion]:
 
         metrics = calcular_metricas(records)
 
+        categoria = clasificar_desempenio(db, metrics["exactitud"])
+
         datos_guardar = {
             "id_usuario": id_usuario,
+            "nivel": categoria, 
             "exactitud": metrics['exactitud'], 
             "promedio_tiempo_por_pregunta": metrics["promedio_tiempo_por_pregunta"],
             "promedio_tiempo_por_lectura": metrics["promedio_tiempo_por_lectura"],
@@ -117,15 +121,13 @@ def calcular_desempenio(id_usuario: str) -> Optional[ResultadoEvaluacion]:
         }
         guardar_evaluacion(db, datos_guardar)
 
-        categoria = clasificar_desempenio(db, metrics["exactitud"])
-
         resultado = {
             "id_usuario": id_usuario,
             "porcentaje_aciertos": round(metrics["exactitud"] * 100, 2),  
             "promedio_tiempo_por_pregunta": metrics["promedio_tiempo_por_pregunta"],
             "promedio_tiempo_por_lectura": metrics["promedio_tiempo_por_lectura"],
             "textos_considerados": metrics["textos_considerados"],
-            "categoria_desempenio": categoria
+            "nivel": categoria
         }
 
         return ResultadoEvaluacion(**resultado)

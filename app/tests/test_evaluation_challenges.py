@@ -8,7 +8,7 @@ from app.models.reto import Reto
 from app.models.grado import Grado
 from app.models.tipo_texto import TipoTexto
 from app.models.tematica import Tematica
-from app.models.diagnostic import Dificultad
+from app.models.dificultad import Dificultad
 from app.models.escenario import Escenario
 from app.models.tipo_juego import TipoJuego
 from app.models.nivel import Nivel
@@ -157,9 +157,9 @@ def test_get_user_streak(db_session):
     
     # Escenario 1: Usuario 1 con racha de 3 victorias
     print(" -> Escenario 1: Usuario 1 debe tener racha de 3 victorias (V-V-V).")
-    juego1 = Juego(nombre_juego=["Reto 1"], id_dificultad=1, fecha_creacion=datetime(2025, 1, 1), id_tipo_juego=1, id_escenario=1, id_nivel=1, id_recompensa=1)
-    juego2 = Juego(nombre_juego=["Reto 2"], id_dificultad=1, fecha_creacion=datetime(2025, 1, 2), id_tipo_juego=1, id_escenario=1, id_nivel=1, id_recompensa=1)
-    juego3 = Juego(nombre_juego=["Reto 3"], id_dificultad=1, fecha_creacion=datetime(2025, 1, 3), id_tipo_juego=1, id_escenario=1, id_nivel=1, id_recompensa=1)
+    juego1 = Juego(nombre_juego=["Reto 1"], fecha_creacion=datetime(2025, 1, 1), id_tipo_juego=1, id_escenario=1, id_nivel=1, id_recompensa=1)
+    juego2 = Juego(nombre_juego=["Reto 2"], fecha_creacion=datetime(2025, 1, 2), id_tipo_juego=1, id_escenario=1, id_nivel=1, id_recompensa=1)
+    juego3 = Juego(nombre_juego=["Reto 3"], fecha_creacion=datetime(2025, 1, 3), id_tipo_juego=1, id_escenario=1, id_nivel=1, id_recompensa=1)
     db_session.add_all([juego1, juego2, juego3])
     db_session.commit()
     reto1 = Reto(id_juego=juego1.id_juego, id_usuario_retador=1, id_usuario_contrincante=2, ganador=1, estado="finalizado")
@@ -168,16 +168,16 @@ def test_get_user_streak(db_session):
 
     # Escenario 2: Usuario 2 con racha de 4 derrotas
     print(" -> Escenario 2: Usuario 2 debe tener racha de 4 derrotas (D-D-D-D).")
-    juego4 = Juego(nombre_juego=["Reto 4"], id_dificultad=1, fecha_creacion=datetime(2025, 1, 4), id_tipo_juego=1, id_escenario=1, id_nivel=1, id_recompensa=1)
+    juego4 = Juego(nombre_juego=["Reto 4"], fecha_creacion=datetime(2025, 1, 4), id_tipo_juego=1, id_escenario=1, id_nivel=1, id_recompensa=1)
     db_session.add(juego4)
     db_session.commit()
     reto4 = Reto(id_juego=juego4.id_juego, id_usuario_retador=3, id_usuario_contrincante=2, ganador=3, estado="finalizado")
 
     # Escenario 3: Usuario 3 con racha rota (V, D, V -> racha actual de 1 victoria)
     print(" -> Escenario 3: Usuario 3 debe tener racha de 1 victoria (V-D-V).")
-    juego5 = Juego(nombre_juego=["Reto 5"], id_dificultad=1, fecha_creacion=datetime(2025, 1, 5), id_tipo_juego=1, id_escenario=1, id_nivel=1, id_recompensa=1)
-    juego6 = Juego(nombre_juego=["Reto 6"], id_dificultad=1, fecha_creacion=datetime(2025, 1, 6), id_tipo_juego=1, id_escenario=1, id_nivel=1, id_recompensa=1)
-    juego_extra = Juego(nombre_juego=["Reto Extra"], id_dificultad=1, fecha_creacion=datetime(2025, 1, 8), id_tipo_juego=1, id_escenario=1, id_nivel=1, id_recompensa=1)
+    juego5 = Juego(nombre_juego=["Reto 5"], fecha_creacion=datetime(2025, 1, 5), id_tipo_juego=1, id_escenario=1, id_nivel=1, id_recompensa=1)
+    juego6 = Juego(nombre_juego=["Reto 6"], fecha_creacion=datetime(2025, 1, 6), id_tipo_juego=1, id_escenario=1, id_nivel=1, id_recompensa=1)
+    juego_extra = Juego(nombre_juego=["Reto Extra"], fecha_creacion=datetime(2025, 1, 8), id_tipo_juego=1, id_escenario=1, id_nivel=1, id_recompensa=1)
     db_session.add_all([juego5, juego6, juego_extra])
     db_session.commit()
     reto5 = Reto(id_juego=juego5.id_juego, id_usuario_retador=3, id_usuario_contrincante=4, ganador=3, estado="finalizado")
@@ -186,7 +186,7 @@ def test_get_user_streak(db_session):
 
     # Escenario 5: Usuario 5 solo con empates
     print(" -> Escenario 4: Usuario 5 debe tener racha de 0 (solo empates).")
-    juego7 = Juego(nombre_juego=["Reto 7"], id_dificultad=1, fecha_creacion=datetime(2025, 1, 7), id_tipo_juego=1, id_escenario=1, id_nivel=1, id_recompensa=1)
+    juego7 = Juego(nombre_juego=["Reto 7"], fecha_creacion=datetime(2025, 1, 7), id_tipo_juego=1, id_escenario=1, id_nivel=1, id_recompensa=1)
     db_session.add(juego7)
     db_session.commit()
     reto7 = Reto(id_juego=juego7.id_juego, id_usuario_retador=5, id_usuario_contrincante=6, ganador=None, estado="finalizado")

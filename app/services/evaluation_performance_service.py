@@ -96,9 +96,7 @@ def guardar_evaluacion(db, result: Dict[str, Any]):
     db.execute(sql, result)
     db.commit()
 
-def calcular_desempenio(id_usuario: str) -> Optional[ResultadoEvaluacion]:
-    from app.core.database import SessionLocal
-    db = SessionLocal()
+def calcular_desempenio(db, id_usuario: str) -> Optional[ResultadoEvaluacion]:
 
     try:
         records = obtener_datos_bd(db, id_usuario)
@@ -134,5 +132,3 @@ def calcular_desempenio(id_usuario: str) -> Optional[ResultadoEvaluacion]:
         print(f"ERROR en calcular_desempenio para {id_usuario}: {e}")
         db.rollback()
         return None
-    finally:
-        db.close()

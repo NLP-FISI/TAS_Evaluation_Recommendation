@@ -15,6 +15,7 @@ from . import generation_recommendation
 from . import recommendation_tematica
 from . import recommendation_tipo_texto
 from .evaluation_analytics import router as evaluation_analytics_router
+from app.api.v1 import evaluation_feedback
 
 
 # --- Creación de enrutadores ---
@@ -32,3 +33,5 @@ router.include_router(recommendation_difficulty.router)
 router.include_router(generation_recommendation.router)
 router.include_router(recommendation_tematica.router)
 router.include_router(recommendation_tipo_texto.router)
+
+router.include_router(evaluation_feedback.router, prefix="/feedback", tags=["Feedback"])

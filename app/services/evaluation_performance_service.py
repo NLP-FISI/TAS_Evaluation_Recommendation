@@ -123,7 +123,7 @@ def calcular_desempenio(db, id_usuario: str) -> Optional[ResultadoEvaluacion]:
             "promedio_tiempo_por_pregunta": metrics["promedio_tiempo_por_pregunta"],
             "promedio_tiempo_por_lectura": metrics["promedio_tiempo_por_lectura"],
             "textos_considerados": metrics["textos_considerados"],
-            "nivel": categoria
+            "desempeño": categoria
         }
 
         return ResultadoEvaluacion(**resultado)

@@ -10,7 +10,7 @@ def entrenar_modelo_tipo_texto():
     Simula un modelo entrenado de recomendación de tipo de texto.
     (En producción, aquí cargarías tu modelo .pkl o TensorFlow)
     """
-    print("📚 Modelo de recomendación de tipo de texto cargado correctamente.")
+    print("Modelo de recomendación de tipo de texto cargado correctamente.")
     return True
 
 

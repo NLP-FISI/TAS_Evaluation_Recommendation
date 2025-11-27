@@ -1,3 +1,4 @@
+# app/services/recommendation_tematica_service.py
 from sqlalchemy.orm import Session
 from app.models.usuario import Usuario
 from app.models.tematica import Tematica

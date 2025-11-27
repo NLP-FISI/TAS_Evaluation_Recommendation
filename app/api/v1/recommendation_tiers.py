@@ -1,3 +1,4 @@
+# app/api/v1/recommendation_tiers.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.services.recommendation_tiers_service import entrenar_y_clasificar

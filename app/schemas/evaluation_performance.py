@@ -10,7 +10,7 @@ class RegistroEvaluacionBase(BaseModel):
     incorrectas: int = Field(..., description="Cantidad de preguntas incorrectas")
 
     class Config:
-        orm_mode = True  # Permite compatibilidad con SQLAlchemy ORM
+        from_attributes = True  # Permite compatibilidad con SQLAlchemy ORM (Pydantic v2)
 
 # Esquema para salida (cuando se devuelve datos desde la BD o API)
 class RegistroEvaluacionSalida(RegistroEvaluacionBase):

@@ -1,40 +1,40 @@
-from sqlalchemy.orm import Session
-from app.models.usuario import Usuario
-from app.models.tipo_texto import TipoTexto
-# from app.models.diagnostic import TipoTexto
-import random
+# app/services/recommendation_tipo_texto_service.py
+from requests import Session
+from sklearn.tree import DecisionTreeClassifier
+import numpy as np
 
+from app.models.tipo_texto import TipoTexto
+from app.models.usuario import Usuario
+
+modelo = None
 
 def entrenar_modelo_tipo_texto():
-    """
-    Simula un modelo entrenado de recomendación de tipo de texto.
-    (En producción, aquí cargarías tu modelo .pkl o TensorFlow)
-    """
-    print("Modelo de recomendación de tipo de texto cargado correctamente.")
+    global modelo
+    X = np.array([
+        [8, 300, 0],    # edad, puntos, genero (0=M, 1=F)
+        [12, 1200, 0],
+        [15, 800, 1],
+        [20, 500, 0],
+        [10, 200, 1]
+    ])
+    y = np.array([
+        "Narrativo",
+        "Argumentativo",
+        "Descriptivo",
+        "Expositivo",
+        "Dialogado"
+    ])
+    modelo = DecisionTreeClassifier()
+    modelo.fit(X, y)
     return True
 
-
 def recomendar_tipo_texto(usuario: Usuario, db: Session):
-    """
-    Retorna un tipo de texto recomendado (id + nombre) para el usuario dado.
-    Se basa en sus características (edad, puntos, grado, etc.)
-    """
+    global modelo
 
-    # Ejemplo: el modelo usa una lógica simple para demostrar estructura.
-    if usuario.edad < 10:
-        preferido = "Narrativo"
-    elif usuario.puntos > 1000:
-        preferido = "Argumentativo"
-    elif usuario.genero == "F":
-        preferido = "Descriptivo"
-    else:
-        # Elegimos aleatoriamente un tipo si no cumple condiciones específicas
-        preferido = random.choice(
-            ["Expositivo", "Informativo", "Dialogado", "Poético"])
+    entrada = np.array([[usuario.edad, usuario.puntos, 1 if usuario.genero == "F" else 0]])
+    preferido = modelo.predict(entrada)[0]
 
-    # Buscar el tipo en BD
-    tipo = db.query(TipoTexto).filter(
-        TipoTexto.nombre_tipo_texto == preferido).first()
+    tipo = db.query(TipoTexto).filter(TipoTexto.nombre_tipo_texto == preferido).first()
     if not tipo:
         tipo = db.query(TipoTexto).order_by(TipoTexto.id_tipo_texto).first()
 
@@ -42,3 +42,4 @@ def recomendar_tipo_texto(usuario: Usuario, db: Session):
         "id_tipo_texto": tipo.id_tipo_texto,
         "nombre_tipo_texto": tipo.nombre_tipo_texto
     }
+

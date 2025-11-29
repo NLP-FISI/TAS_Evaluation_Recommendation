@@ -12,20 +12,19 @@ class RegistroEvaluacionBase(BaseModel):
     class Config:
         from_attributes = True  # Permite compatibilidad con SQLAlchemy ORM (Pydantic v2)
 
-# Esquema para salida (cuando devuelves datos desde la BD o API)
+# Esquema para salida (cuando se devuelve datos desde la BD o API)
 class RegistroEvaluacionSalida(RegistroEvaluacionBase):
     id_resultado_juego: int = Field(..., description="ID único del resultado del juego")
 
-# Esquema para solicitud (cuando recibes datos de entrada)
+# Esquema para solicitud (cuando se recibe datos de entrada)
 class SolicitudEvaluacion(BaseModel):
     id_usuario: int = Field(..., description="ID del estudiante a evaluar")
 
 # Esquema para resultado final del cálculo de evaluación
 class ResultadoEvaluacion(BaseModel):
     id_usuario: int
-    puntaje: float = Field(..., description="Puntaje (0-100)")
-    nivel: str = Field(..., description="Nivel: básico / intermedio / avanzado")
-    exactitud: float = Field(..., description="Porcentaje de respuestas correctas (0..1)")
+    porcentaje_aciertos: float = Field(..., description="Porcentaje de respuestas correctas")
     promedio_tiempo_por_pregunta: float = Field(..., description="Promedio en segundos por pregunta")
     promedio_tiempo_por_lectura: float = Field(..., description="Promedio en segundos por lectura")
     textos_considerados: int = Field(..., description="Cantidad de textos usados en la evaluación")
+    desempeño: str = Field(..., description="Comparación del desempeño respecto al promedio general")

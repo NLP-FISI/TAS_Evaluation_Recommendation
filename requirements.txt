@@ -9,4 +9,5 @@ scikit_learn==1.7.2
 SQLAlchemy==2.0.25
 uvicorn[standard]==0.32.1
 psycopg2-binary==2.9.9
+requests>=2.31.0
 httpx

@@ -36,7 +36,7 @@ class DiagnosticService:
 
     @staticmethod
     def _get_user_by_student_id(db: Session, student_id: str) -> Usuario:
-        user = db.query(Usuario).filter(Usuario.student_id == student_id).first()
+        user = db.query(Usuario).filter(Usuario.id_usuario == student_id).first()
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

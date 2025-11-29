@@ -1,4 +1,6 @@
 from app.models.usuario import Usuario
+from app.models.pregunta import Pregunta
+import re
 
 
 class RecommendationInputService:
@@ -6,6 +8,16 @@ class RecommendationInputService:
     Servicio que genera textos de prueba de entrada (fase 1 y fase 2)
     de forma temporal (hardcodeado).
     """
+
+    @staticmethod
+    def _strip_html_tags(html_content: str) -> str:
+        """Elimina todas las etiquetas HTML y retorna solo el texto plano."""
+        clean = re.sub(r'<style[^>]*>.*?</style>', '', html_content, flags=re.DOTALL)
+        clean = re.sub(r'<script[^>]*>.*?</script>', '', clean, flags=re.DOTALL)
+        clean = re.sub(r'<[^>]+>', '', clean)
+        clean = re.sub(r'\n\s*\n', '\n\n', clean)
+        clean = re.sub(r' +', ' ', clean)
+        return clean.strip()
 
     @staticmethod
     def get_input_texts(id_usuario: int, db):
@@ -19,141 +31,74 @@ class RecommendationInputService:
         grado = usuario.grado.nombre_grado if usuario.grado else "Sin grado"
         preferencias = [t.nombre_tematica for t in usuario.preferencias] if usuario.preferencias else ["General"]
 
-        # Generar textos hardcodeados
+        # Obtener textos de diagnóstico desde la base de datos (ID 1 y 2)
+        texto_ids = [1, 2]
+        
+        # Consultar preguntas asociadas a estos textos
+        preguntas = (
+            db.query(Pregunta)
+            .filter(Pregunta.id_texto.in_(texto_ids))
+            .order_by(Pregunta.id_texto, Pregunta.id_pregunta)
+            .all()
+        )
+        
+        # Agrupar preguntas por texto
+        textos_dict = {}
+        for pregunta in preguntas:
+            texto = pregunta.texto
+            if not texto:
+                continue
+                
+            if texto.id_texto not in textos_dict:
+                # Detectar si tiene HTML
+                has_html = bool(texto.contenido and ('<' in texto.contenido and '>' in texto.contenido))
+                
+                # Convertir a texto plano si tiene HTML
+                content = texto.contenido or ""
+                if has_html:
+                    content = RecommendationInputService._strip_html_tags(content)
+                
+                textos_dict[texto.id_texto] = {
+                    "id_texto": texto.id_texto,
+                    "titulo": texto.titulo or f"Texto {texto.id_texto}",
+                    "contenido": content,
+                    "preguntas": []
+                }
+            
+            # Construir alternativas
+            alternativas = [
+                {
+                    "id_alternativa": alt.id_alternativa,
+                    "contenido": alt.contenido
+                }
+                for alt in pregunta.alternativas
+            ]
+            
+            # Agregar pregunta
+            textos_dict[texto.id_texto]["preguntas"].append({
+                "id_pregunta": pregunta.id_pregunta,
+                "contenido": pregunta.contenido,
+                "id_dificultad": pregunta.id_dificultad,
+                "id_tipo_pregunta": pregunta.id_tipo_pregunta,
+                "alternativas": alternativas
+            })
+        
+        # Convertir dict a lista ordenada
+        textos_lista = [textos_dict[tid] for tid in sorted(textos_dict.keys())]
+        
+        # Crear fases
         fase_1 = {
             "fase": "Fase 1",
             "descripcion": "Preguntas literal e inferencial básica",
             "textos_obtenidos": 1,
-            "textos": [
-                {
-                    "id_texto": 66,
-                    "titulo": "La gran aventura de Carlos en el bosque",
-                    "contenido": (
-                        "Carlos vive en un pueblo cerca de la selva. Un día, su abuelo le dijo: "
-                        "'Carlos, vamos a explorar'. Carlos llevó su mochila y una linterna. "
-                        "Caminaron mucho. De pronto, vieron un río. '¿Cómo pasamos?', preguntó Carlos. "
-                        "'Con cuidado', dijo el abuelo. Cruzaron unas piedras. En el bosque, encontraron un pájaro herido. "
-                        "'Lo ayudaremos', dijo Carlos. Lo llevaron a casa. El pájaro mejoró. ¡Estaban felices!"
-                    ),
-                    "preguntas": [
-                        {
-                            "id_pregunta": 305,
-                            "contenido": "¿Qué llevó Carlos al bosque?",
-                            "id_dificultad": 1,
-                            "id_tipo_pregunta": 1,
-                            "alternativas": [
-                                {"id_alternativa": 1189, "contenido": "Una mochila y una linterna"},
-                                {"id_alternativa": 1190, "contenido": "Un paraguas"},
-                                {"id_alternativa": 1191, "contenido": "Un balde"},
-                                {"id_alternativa": 1192, "contenido": "Un juguete"}
-                            ]
-                        },
-                        {
-                            "id_pregunta": 306,
-                            "contenido": "¿Qué encontraron en el bosque?",
-                            "id_dificultad": 2,
-                            "id_tipo_pregunta": 2,
-                            "alternativas": [
-                                {"id_alternativa": 1193, "contenido": "Un pájaro herido"},
-                                {"id_alternativa": 1194, "contenido": "Una flor grande"},
-                                {"id_alternativa": 1195, "contenido": "Una piedra brillante"},
-                                {"id_alternativa": 1196, "contenido": "Un río seco"}
-                            ]
-                        },
-                        {
-                            "id_pregunta": 307,
-                            "contenido": "¿Por qué Carlos y su abuelo ayudaron al pájaro?",
-                            "id_dificultad": 3,
-                            "id_tipo_pregunta": 3,
-                            "alternativas": [
-                                {"id_alternativa": 1197, "contenido": "Porque querían cuidarlo"},
-                                {"id_alternativa": 1198, "contenido": "Porque el pájaro les dio comida"},
-                                {"id_alternativa": 1199, "contenido": "Porque era un pájaro mágico"},
-                                {"id_alternativa": 1200, "contenido": "Porque el pájaro les cantó"}
-                            ]
-                        },
-                        {
-                            "id_pregunta": 308,
-                            "contenido": "¿Cómo cruzaron el río?",
-                            "id_dificultad": 4,
-                            "id_tipo_pregunta": 1,
-                            "alternativas": [
-                                {"id_alternativa": 1201, "contenido": "Con cuidado, usando piedras"},
-                                {"id_alternativa": 1202, "contenido": "Nadando rápido"},
-                                {"id_alternativa": 1203, "contenido": "Con un puente de madera"},
-                                {"id_alternativa": 1204, "contenido": "Saltando desde la orilla"}
-                            ]
-                        },
-                        {
-                            "id_pregunta": 309,
-                            "contenido": "¿Qué sintió Carlos al final de la aventura?",
-                            "id_dificultad": 5,
-                            "id_tipo_pregunta": 2,
-                            "alternativas": [
-                                {"id_alternativa": 1205, "contenido": "Feliz"},
-                                {"id_alternativa": 1206, "contenido": "Cansado"},
-                                {"id_alternativa": 1207, "contenido": "Enojado"},
-                                {"id_alternativa": 1208, "contenido": "Asustado"}
-                            ]
-                        }
-                    ]
-                }
-            ]
+            "textos": [textos_lista[0]] if len(textos_lista) > 0 else []
         }
 
         fase_2 = {
             "fase": "Fase 2",
             "descripcion": "Preguntas literal, inferencial intermedio y crítica",
             "textos_obtenidos": 1,
-            "textos": [
-                {
-                    "id_texto": 67,
-                    "titulo": "El nuevo parque del barrio",
-                    "contenido": (
-                        "El alcalde inauguró un nuevo parque en el barrio. Los niños estaban emocionados. "
-                        "Tenía juegos, áreas verdes y una fuente. Sin embargo, algunos vecinos pensaron que "
-                        "debieron plantar más árboles. Al final, todos acordaron cuidarlo entre todos."
-                    ),
-                    "preguntas": [
-                        {
-                            "id_pregunta": 401,
-                            "contenido": "¿Qué inauguró el alcalde?",
-                            "id_dificultad": 1,
-                            "id_tipo_pregunta": 1,
-                            "alternativas": [
-                                {"id_alternativa": 1301, "contenido": "Un parque"},
-                                {"id_alternativa": 1302, "contenido": "Una escuela"},
-                                {"id_alternativa": 1303, "contenido": "Una calle"},
-                                {"id_alternativa": 1304, "contenido": "Una biblioteca"}
-                            ]
-                        },
-                        {
-                            "id_pregunta": 402,
-                            "contenido": "¿Por qué algunos vecinos no estaban totalmente contentos?",
-                            "id_dificultad": 2,
-                            "id_tipo_pregunta": 2,
-                            "alternativas": [
-                                {"id_alternativa": 1305, "contenido": "Porque querían más árboles"},
-                                {"id_alternativa": 1306, "contenido": "Porque no había juegos"},
-                                {"id_alternativa": 1307, "contenido": "Porque el parque era pequeño"},
-                                {"id_alternativa": 1308, "contenido": "Porque no asistieron"}
-                            ]
-                        },
-                        {
-                            "id_pregunta": 403,
-                            "contenido": "¿Qué enseña este texto sobre la convivencia vecinal?",
-                            "id_dificultad": 3,
-                            "id_tipo_pregunta": 3,
-                            "alternativas": [
-                                {"id_alternativa": 1309, "contenido": "Que todos deben colaborar"},
-                                {"id_alternativa": 1310, "contenido": "Que los niños deben jugar solos"},
-                                {"id_alternativa": 1311, "contenido": "Que el alcalde decide todo"},
-                                {"id_alternativa": 1312, "contenido": "Que el parque no sirve"}
-                            ]
-                        }
-                    ]
-                }
-            ]
+            "textos": [textos_lista[1]] if len(textos_lista) > 1 else []
         }
 
         # Armar la respuesta final

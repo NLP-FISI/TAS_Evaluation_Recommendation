@@ -1,5 +1,5 @@
 # File: app/api/v1/diagnostic.py
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 
@@ -9,7 +9,8 @@ from app.services.diagnostic_service import DiagnosticService
 from app.schemas.diagnostic_schemas import (
     DiagnosticStage1Request, DiagnosticStage1Response,
     DiagnosticStage2Request, DiagnosticStage2Response,
-    LevelAssignmentRequest, LevelAssignmentResponse  # Importar nuevos esquemas
+    LevelAssignmentRequest, LevelAssignmentResponse,
+    DiagnosticTextsResponse
 )
 
 # Crear el router para las rutas de diagnóstico
@@ -72,3 +73,28 @@ async def assign_initial_level(
         raise http_exc # Re-lanzar excepciones conocidas
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno al asignar nivel: {str(e)}")
+
+
+# --- ENDPOINT PARA OBTENER TEXTOS DE DIAGNÓSTICO ---
+@router.get("/texts", response_model=DiagnosticTextsResponse)
+async def get_diagnostic_texts(
+    stage: int = Query(..., ge=1, le=2, description="Número de etapa (1 o 2)"),
+    db: Session = Depends(get_db)
+):
+    """
+    Endpoint para obtener los textos de diagnóstico con sus preguntas y alternativas.
+    
+    Parámetros:
+    - stage: Número de etapa (1 o 2)
+    
+    Retorna los textos con sus preguntas y alternativas correspondientes.
+    """
+    try:
+        return DiagnosticService.get_diagnostic_texts(stage, db)
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al obtener textos de diagnóstico: {str(e)}"
+        )

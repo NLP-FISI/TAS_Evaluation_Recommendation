@@ -11,12 +11,15 @@ from app.models.alternativa import Alternativa
 from app.models.resultado_diagnostico import ResultadoDiagnostico
 from app.models.desempenio import Desempenio
 from app.models.grado import Grado
+from app.models.pregunta import Pregunta
+from app.models.texto import Texto
 
 # Esquemas
 from app.schemas.diagnostic_schemas import (
     DiagnosticStage1Request, DiagnosticStage1Response, Answer,
     DiagnosticStage2Request, DiagnosticStage2Response,
-    LevelAssignmentRequest, LevelAssignmentResponse
+    LevelAssignmentRequest, LevelAssignmentResponse,
+    DiagnosticTextsResponse, TextInfo, QuestionInfo, AlternativeInfo
 )
 
 # IDs fijos de preguntas por etapa (ajusta si cambian en tu BD)
@@ -337,4 +340,89 @@ class DiagnosticService:
             assigned_level_label=nivel,
             assigned_level_grade=grado.id_grado,
             message="Nivel de competencia inicial asignado exitosamente."
+        )
+
+    # ------------ Obtener textos de diagnóstico con preguntas y alternativas ------------
+
+    @staticmethod
+    def get_diagnostic_texts(stage: int, db: Session) -> DiagnosticTextsResponse:
+        """
+        Obtiene los textos de diagnóstico con sus preguntas y alternativas para una etapa específica.
+        
+        Args:
+            stage: Número de etapa (1 o 2)
+            db: Sesión de base de datos
+            
+        Returns:
+            DiagnosticTextsResponse con los textos, preguntas y alternativas
+        """
+        # Validar etapa
+        if stage not in [1, 2]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="La etapa debe ser 1 o 2."
+            )
+        
+        # Obtener IDs de preguntas según la etapa
+        question_ids = STAGE_1_QUESTIONS if stage == 1 else STAGE_2_QUESTIONS
+        
+        # Consultar preguntas con sus textos y alternativas
+        preguntas = db.query(Pregunta)\
+            .filter(Pregunta.id_pregunta.in_(question_ids))\
+            .order_by(Pregunta.id_pregunta)\
+            .all()
+        
+        if not preguntas:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No se encontraron preguntas para la etapa {stage}."
+            )
+        
+        # Agrupar preguntas por texto
+        textos_dict = {}
+        for pregunta in preguntas:
+            texto = pregunta.texto
+            if not texto:
+                continue
+                
+            if texto.id_texto not in textos_dict:
+                # Detectar si el contenido tiene etiquetas HTML
+                has_html = bool(texto.contenido and ('<' in texto.contenido and '>' in texto.contenido))
+                
+                textos_dict[texto.id_texto] = {
+                    'text_id': texto.id_texto,
+                    'title': texto.titulo or f"Texto {texto.id_texto}",
+                    'content': texto.contenido,
+                    'format': 'html' if has_html else 'plain',
+                    'questions': []
+                }
+            
+            # Construir alternativas
+            alternatives = [
+                AlternativeInfo(
+                    alternative_id=alt.id_alternativa,
+                    text=alt.contenido
+                )
+                for alt in pregunta.alternativas
+            ]
+            
+            # Agregar pregunta
+            textos_dict[texto.id_texto]['questions'].append(
+                QuestionInfo(
+                    question_id=pregunta.id_pregunta,
+                    question_text=pregunta.contenido,
+                    alternatives=alternatives
+                )
+            )
+        
+        # Convertir diccionario a lista de TextInfo
+        texts = [
+            TextInfo(**texto_data)
+            for texto_data in textos_dict.values()
+        ]
+        
+        return DiagnosticTextsResponse(
+            stage=stage,
+            texts=texts,
+            message=f"Textos de diagnóstico para la etapa {stage} obtenidos exitosamente."
         )

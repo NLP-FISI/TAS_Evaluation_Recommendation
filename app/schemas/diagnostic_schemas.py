@@ -68,6 +68,45 @@ class LevelAssignmentResponse(BaseModel):
     message: str
 
 
+# --- Esquemas para obtener textos de diagnóstico ---
+class AlternativeInfo(BaseModel):
+    """Información de una alternativa."""
+    alternative_id: int
+    text: str
+    
+    class Config:
+        from_attributes = True
+
+
+class QuestionInfo(BaseModel):
+    """Información de una pregunta con sus alternativas."""
+    question_id: int
+    question_text: str
+    alternatives: List[AlternativeInfo]
+    
+    class Config:
+        from_attributes = True
+
+
+class TextInfo(BaseModel):
+    """Información de un texto con sus preguntas."""
+    text_id: int
+    title: str
+    content: str
+    format: str = "plain"  # "plain" o "html"
+    questions: List[QuestionInfo]
+    
+    class Config:
+        from_attributes = True
+
+
+class DiagnosticTextsResponse(BaseModel):
+    """Respuesta con los textos de diagnóstico de una etapa."""
+    stage: int = Field(..., description="Número de etapa (1 o 2)")
+    texts: List[TextInfo]
+    message: str
+
+
 # --- Servicio principal ---
 class DiagnosticService:
     """Contiene la lógica de negocio del diagnóstico (Etapa 1)."""

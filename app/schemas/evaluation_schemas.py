@@ -10,32 +10,10 @@ class EvaluationInputRequest(BaseModel):
     preferences: Optional[List[str]] = []  # Ej: ["animales", "aventuras"]
 
 
-class AlternativeInfo(BaseModel):
-    """Información de una alternativa."""
-    alternative_id: int
-    text: str
-
-
-class QuestionInfo(BaseModel):
-    """Información de una pregunta con sus alternativas."""
-    question_id: int
-    question_text: str
-    alternatives: List[AlternativeInfo]
-
-
-class TextWithQuestions(BaseModel):
-    """Texto con sus preguntas y alternativas."""
-    text_id: int
-    title: str
-    content: str
-    format: str = "plain"  # "plain" o "html"
-    questions: List[QuestionInfo]
-
-
 class EvaluationInputResponse(BaseModel):
     student_id: str
     initial_level: str
-    texts: List[TextWithQuestions]  # Textos con preguntas
+    recommended_texts: List[str]
     message: str
 
 # =====================================================================================
